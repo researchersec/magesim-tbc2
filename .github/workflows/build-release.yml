@@ -1,0 +1,86 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Emscripten
+        uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.51
+          actions-cache-folder: 'emsdk-cache'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build WebAssembly
+        run: make
+
+      - name: Build Frontend
+        run: npx mix --production
+
+      - name: Create release package
+        run: |
+          mkdir -p release
+          cp index.html release/
+          cp -r dist release/
+          cp -r assets release/
+          cp readme.md release/
+          cp LICENSE release/ || true
+          cd release
+          tar -czf ../warriorsim-tbc.tar.gz .
+          cd ..
+          zip -r warriorsim-tbc.zip release/
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: warriorsim-tbc-build
+          path: |
+            warriorsim-tbc.tar.gz
+            warriorsim-tbc.zip
+          retention-days: 90
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            warriorsim-tbc.tar.gz
+            warriorsim-tbc.zip
+          body: |
+            ## WarriorSim TBC Release
+            
+            Warrior DPS simulator for WoW TBC Classic.
+            
+            ### Installation
+            1. Download and extract the archive
+            2. Open `index.html` in a web browser
+            3. Or serve via a web server: `python3 -m http.server`
+            
+            ### What's Included
+            - WebAssembly simulation engine
+            - Vue.js frontend interface
+            - All assets and dependencies
+            
+            ### Requirements
+            - Modern web browser with WebAssembly support
+            - For local file access, use a web server (browsers block WASM from file://)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
