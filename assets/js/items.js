@@ -26,7 +26,7 @@ var ids = {
     CHAOTIC_SKYFIRE: 34220,
 };
 
-var equip = {
+var items = {
     weapon: [
         // Phase 5 - Sunwell
         { id: 34247, title: "Apolyon, the Soul-Render", str: 44, crit: 37, hit: 30, haste: 37, twohand: true, weapon_speed: 3.6, weapon_dmg_min: 471, weapon_dmg_max: 707, phase: 5 },
@@ -220,42 +220,35 @@ var equip = {
         ],
     },
     
-    gems: {
-        red: [
-            { id: 24027, title: "Bold Living Ruby", str: 8, color: "red" },
-            { id: 24028, title: "Delicate Living Ruby", agi: 8, color: "red" },
-            { id: 32193, title: "Bold Crimson Spinel", str: 10, color: "red" },
-            { id: 32194, title: "Delicate Crimson Spinel", agi: 10, color: "red" },
-        ],
-        yellow: [
-            { id: 24031, title: "Smooth Dawnstone", crit: 8, color: "yellow" },
-            { id: 24032, title: "Rigid Dawnstone", hit: 8, color: "yellow" },
-            { id: 24033, title: "Quick Dawnstone", haste: 8, color: "yellow" },
-            { id: 32205, title: "Smooth Lionseye", crit: 10, color: "yellow" },
-            { id: 32206, title: "Rigid Lionseye", hit: 10, color: "yellow" },
-        ],
-        blue: [
-            { id: 24036, title: "Solid Star of Elune", sta: 12, color: "blue" },
-            { id: 32200, title: "Solid Empyrean Sapphire", sta: 15, color: "blue" },
-        ],
-        orange: [
-            { id: 24058, title: "Inscribed Noble Topaz", str: 4, crit: 4, color: "orange" },
-            { id: 24059, title: "Potent Noble Topaz", str: 4, crit: 4, color: "orange" },
-            { id: 32217, title: "Inscribed Pyrestone", str: 5, crit: 5, color: "orange" },
-        ],
-        green: [
-            { id: 24062, title: "Jagged Talasite", crit: 4, sta: 6, color: "green" },
-            { id: 32220, title: "Jagged Seaspray Emerald", crit: 5, sta: 7, color: "green" },
-        ],
-        purple: [
-            { id: 24054, title: "Sovereign Nightseye", str: 4, sta: 6, color: "purple" },
-            { id: 32212, title: "Sovereign Shadowsong Amethyst", str: 5, sta: 7, color: "purple" },
-        ],
-        meta: [
-            { id: ids.RELENTLESS_EARTHSTORM, title: "Relentless Earthstorm Diamond", agi: 12, crit: 3, color: "meta" },
-            { id: ids.CHAOTIC_SKYFIRE, title: "Chaotic Skyfire Diamond", crit: 12, crit_dmg: 3, color: "meta" },
-        ],
-    },
+    gems: [
+        // Red
+        { id: 24027, title: "Bold Living Ruby", str: 8, color: "red" },
+        { id: 24028, title: "Delicate Living Ruby", agi: 8, color: "red" },
+        { id: 32193, title: "Bold Crimson Spinel", str: 10, color: "red" },
+        { id: 32194, title: "Delicate Crimson Spinel", agi: 10, color: "red" },
+        // Yellow
+        { id: 24031, title: "Smooth Dawnstone", crit: 8, color: "yellow" },
+        { id: 24032, title: "Rigid Dawnstone", hit: 8, color: "yellow" },
+        { id: 24033, title: "Quick Dawnstone", haste: 8, color: "yellow" },
+        { id: 32205, title: "Smooth Lionseye", crit: 10, color: "yellow" },
+        { id: 32206, title: "Rigid Lionseye", hit: 10, color: "yellow" },
+        // Blue
+        { id: 24036, title: "Solid Star of Elune", sta: 12, color: "blue" },
+        { id: 32200, title: "Solid Empyrean Sapphire", sta: 15, color: "blue" },
+        // Orange
+        { id: 24058, title: "Inscribed Noble Topaz", str: 4, crit: 4, color: "orange" },
+        { id: 24059, title: "Potent Noble Topaz", str: 4, crit: 4, color: "orange" },
+        { id: 32217, title: "Inscribed Pyrestone", str: 5, crit: 5, color: "orange" },
+        // Green
+        { id: 24062, title: "Jagged Talasite", crit: 4, sta: 6, color: "green" },
+        { id: 32220, title: "Jagged Seaspray Emerald", crit: 5, sta: 7, color: "green" },
+        // Purple
+        { id: 24054, title: "Sovereign Nightseye", str: 4, sta: 6, color: "purple" },
+        { id: 32212, title: "Sovereign Shadowsong Amethyst", str: 5, sta: 7, color: "purple" },
+        // Meta
+        { id: ids.RELENTLESS_EARTHSTORM, title: "Relentless Earthstorm Diamond", agi: 12, crit: 3, color: "meta" },
+        { id: ids.CHAOTIC_SKYFIRE, title: "Chaotic Skyfire Diamond", crit: 12, crit_dmg: 3, color: "meta" },
+    ],
     
     quicksets: {
         prebis: {
@@ -282,4 +275,4 @@ var equip = {
     },
 };
 
-export default equip;
+export default items;
