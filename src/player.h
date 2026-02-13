@@ -4,12 +4,10 @@ class Player
 {
 
 public:
-    const double base_mana = 2241;
-
     Stats stats;
     Talents talents;
     shared_ptr<Config> config;
-    Race race = RACE_UNDEAD;
+    Race race = RACE_ORC;
 
     Player(shared_ptr<Config> _config)
     {
@@ -21,51 +19,71 @@ public:
     // Stats without gear or talents
     void setBaseStats()
     {
-        // Undead default
-        stats.intellect = 149;
-        stats.spirit = 150;
-        stats.mp5 = 0;
-        stats.crit = 0.91;
+        // Orc default
+        stats.strength = 123;
+        stats.agility = 77;
+        stats.stamina = 122;
+        stats.crit = 0;
         stats.hit = 0;
         stats.haste = 0;
-        stats.spell_power = 0;
-        stats.spell_power_arcane = 0;
-        stats.spell_power_frost = 0;
+        stats.expertise = 0;
+        stats.armor_pen = 0;
+        stats.attack_power = 0;
 
-        if (race == RACE_TROLL) {
-            stats.intellect = 147;
-            stats.spirit = 146;
+        if (race == RACE_HUMAN) {
+            stats.strength = 120;
+            stats.agility = 80;
+            stats.stamina = 120;
         }
-        if (race == RACE_BLOOD_ELF) {
-            stats.intellect = 155;
-            stats.spirit = 144;
+        if (race == RACE_DWARF) {
+            stats.strength = 122;
+            stats.agility = 76;
+            stats.stamina = 123;
         }
-        if (race == RACE_DRAENEI) {
-            stats.intellect = 152;
-            stats.spirit = 147;
+        if (race == RACE_NIGHT_ELF) {
+            stats.strength = 117;
+            stats.agility = 85;
+            stats.stamina = 119;
         }
         if (race == RACE_GNOME) {
-            stats.intellect = 155;
-            stats.spirit = 145;
+            stats.strength = 115;
+            stats.agility = 83;
+            stats.stamina = 119;
         }
-        if (race == RACE_HUMAN) {
-            stats.intellect = 151;
-            stats.spirit = 145;
+        if (race == RACE_DRAENEI) {
+            stats.strength = 121;
+            stats.agility = 77;
+            stats.stamina = 122;
+        }
+        if (race == RACE_UNDEAD) {
+            stats.strength = 119;
+            stats.agility = 78;
+            stats.stamina = 121;
+        }
+        if (race == RACE_TAUREN) {
+            stats.strength = 125;
+            stats.agility = 75;
+            stats.stamina = 122;
+        }
+        if (race == RACE_TROLL) {
+            stats.strength = 121;
+            stats.agility = 82;
+            stats.stamina = 121;
         }
     }
 
     // Stats with gear but without talents
     void setDefaultStats()
     {
-        stats.intellect = 465;
-        stats.spirit = 285;
-        stats.mp5 = 0;
-        stats.crit = 20;
-        stats.hit = 6;
+        stats.strength = 500;
+        stats.agility = 400;
+        stats.stamina = 500;
+        stats.crit = 25;
+        stats.hit = 9;
         stats.haste = 0;
-        stats.spell_power = 1000;
-        stats.spell_power_arcane = 50;
-        stats.spell_power_frost = 0;
+        stats.expertise = 0;
+        stats.armor_pen = 0;
+        stats.attack_power = 2000;
     }
 
     void quickReady()
@@ -88,161 +106,142 @@ public:
     void setConfigStats()
     {
         // Attribute additions
-        if (config->arcane_intellect)
-            stats.intellect+= 40;
-        if (config->divine_spirit)
-            stats.spirit+= 40;
-        if (config->guardian_elixir == ELIXIR_DRAENIC_WISDOM) {
-            stats.intellect+= 30;
-            stats.spirit+= 30;
+        if (config->battle_shout) {
+            double ap = 306;
+            if (config->improved_battle_shout)
+                ap*= 1.25;
+            stats.attack_power+= ap;
         }
-        if (config->battle_elixir == ELIXIR_MASTERY) {
-            stats.intellect+= 15;
-            stats.spirit+= 15;
+        if (config->blessing_of_might) {
+            double ap = 220;
+            if (config->improved_blessing_of_might)
+                ap*= 1.25;
+            stats.attack_power+= ap;
+        }
+        if (config->strength_of_earth) {
+            double str = 86;
+            if (config->improved_strength_of_earth)
+                str+= 12;
+            stats.strength+= str;
+        }
+        if (config->grace_of_air) {
+            double agi = 88;
+            if (config->improved_grace_of_air)
+                agi+= 12;
+            stats.agility+= agi;
         }
         if (config->mark_of_the_wild) {
-            stats.intellect+= 18;
-            stats.spirit+= 18;
+            double bonus = 14;
+            if (config->improved_mark_of_the_wild)
+                bonus+= 2;
+            stats.strength+= bonus;
+            stats.agility+= bonus;
+            stats.stamina+= bonus;
         }
-        if (config->flask == FLASK_DISTILLED_WISDOM)
-            stats.intellect+= 65;
+        if (config->flask == FLASK_RELENTLESS_ASSAULT)
+            stats.attack_power+= 120;
+        if (config->flask == FLASK_FORTIFICATION)
+            stats.stamina+= 500;
         if (config->flask == FLASK_CHROMATIC_WONDER) {
-            stats.intellect+= 18;
-            stats.spirit+= 18;
+            stats.strength+= 18;
+            stats.agility+= 18;
+            stats.stamina+= 18;
         }
-        if (config->food == FOOD_SPELL_POWER || config->food == FOOD_SPELL_CRIT)
-            stats.spirit+= 20;
-        if (config->scroll_of_spirit)
-            stats.spirit+= 30;
-        if (config->kreegs) {
-            stats.spirit+= 25;
-            stats.intellect-= 5;
+        if (config->battle_elixir == ELIXIR_MAJOR_AGILITY)
+            stats.agility+= 35;
+        if (config->battle_elixir == ELIXIR_MAJOR_STRENGTH)
+            stats.strength+= 35;
+        if (config->guardian_elixir == ELIXIR_MAJOR_FORTITUDE)
+            stats.stamina+= 250;
+        if (config->guardian_elixir == ELIXIR_MASTERY) {
+            stats.strength+= 15;
+            stats.agility+= 15;
+            stats.stamina+= 15;
         }
+        if (config->food == FOOD_GRILLED_MUDFISH)
+            stats.agility+= 20;
+        if (config->food == FOOD_RAVAGER_DOG)
+            stats.strength+= 20;
+        if (config->food == FOOD_ROASTED_CLEFTHOOF)
+            stats.strength+= 20;
+        if (config->weapon_oil == OIL_ADAMANTITE_WEIGHTSTONE)
+            stats.attack_power+= 28;
 
         // Attribute multipliers
-        if (talents.arcane_mind)
-            stats.intellect*= 1.0 + talents.arcane_mind*0.03;
-        if (race == RACE_GNOME)
-            stats.intellect*= 1.05;
-        if (race == RACE_HUMAN)
-            stats.spirit*= 1.1;
         if (config->blessing_of_kings) {
-            stats.intellect*= 1.1;
-            stats.spirit*= 1.1;
+            stats.strength*= 1.1;
+            stats.agility*= 1.1;
+            stats.stamina*= 1.1;
         }
-        if (config->meta_gem == META_EMBER_SKYFIRE)
-            stats.intellect*= 1.02;
-        stats.intellect = round(stats.intellect);
-        stats.spirit = round(stats.spirit);
+        stats.strength = round(stats.strength);
+        stats.agility = round(stats.agility);
+        stats.stamina = round(stats.stamina);
 
-        // Mp5
-        if (config->guardian_elixir == ELIXIR_MAJOR_MAGEBLOOD)
-            stats.mp5+= 16;
-        if (config->weapon_oil == OIL_SUPERIOR_MANA)
-            stats.mp5+= 14;
-        if (config->blessing_of_wisdom)
-            stats.mp5+= 49;
+        // Attack power from strength
+        stats.attack_power+= stats.strength * 2;
 
-        // Spell power
-        double int_multi = 0;
-        if (talents.mind_mastery)
-            int_multi+= talents.mind_mastery*0.05;
-        if (config->spellfire_set)
-            int_multi+= 0.07;
-        if (int_multi > 0)
-            stats.spell_power+= round(stats.intellect * int_multi);
+        // Crit from agility
+        stats.crit+= stats.agility / 25.0;
 
-        if (config->improved_divine_spirit && config->divine_spirit)
-            stats.spell_power+= stats.spirit*0.1;
-        if (config->wrath_of_air)
-            stats.spell_power+= 101.0;
-        if (config->weapon_oil == OIL_BRILLIANT_WIZARD)
-            stats.spell_power+= 36.0;
-        if (config->weapon_oil == OIL_SUPERIOR_WIZARD)
-            stats.spell_power+= 42.0;
-        if (config->weapon_oil == OIL_BLESSED_WIZARD)
-            stats.spell_power+= 60.0;
-        if (config->food == FOOD_SPELL_POWER)
-            stats.spell_power+= 23.0;
-        if (config->flask == FLASK_SUPREME_POWER)
-            stats.spell_power+= 70.0;
-        if (config->flask == FLASK_BLINDING_LIGHT)
-            stats.spell_power_arcane+= 80.0;
-        if (config->flask == FLASK_PURE_DEATH) {
-            stats.spell_power_fire+= 80.0;
-            stats.spell_power_frost+= 80.0;
+        // Racial bonuses
+        if (race == RACE_HUMAN) {
+            // Humans: +5 expertise with swords and maces
+            stats.expertise+= 5;
         }
-        if (config->battle_elixir == ELIXIR_ADEPTS)
-            stats.spell_power+= 24.0;
-        if (config->battle_elixir == ELIXIR_GREATER_ARCANE)
-            stats.spell_power+= 35.0;
-        if (config->battle_elixir == ELIXIR_MAJOR_FIREPOWER)
-            stats.spell_power_fire+= 55.0;
-        if (config->atiesh_warlock)
-            stats.spell_power+= 33.0;
-        if (config->eye_of_the_night)
-            stats.spell_power+= 34.0;
-        if (config->jade_pendant_of_blasting)
-            stats.spell_power+= 15.0;
-        if (config->bloodthistle && race == RACE_BLOOD_ELF)
-            stats.spell_power+= 10.0;
-        if (config->scourgebane)
-            stats.spell_power+= 15.0;
+        if (race == RACE_ORC) {
+            // Orcs: +5 expertise with axes
+            stats.expertise+= 5;
+        }
+        if (race == RACE_DWARF) {
+            // Dwarves: +5 expertise with maces
+            stats.expertise+= 5;
+        }
 
-        // Spell crit
-        double critrating = 0;
-        if (config->judgement_of_the_crusader)
-            stats.crit+= 3.0;
-        if (config->moonkin_aura)
-            stats.crit+= 5.0;
-        if (config->totem_of_wrath)
-            stats.crit+= 3.0;
-        if (config->molten_armor)
-            stats.crit+= 3.0;
-        if (config->chain_of_the_twilight_owl)
-            stats.crit+= 2.0;
-        if (config->battle_elixir == ELIXIR_ADEPTS)
-            critrating+= 24;
-        if (config->weapon_oil == OIL_BRILLIANT_WIZARD)
-            critrating+= 14;
-        if (config->food == FOOD_SPELL_CRIT)
-            critrating+= 20;
-        if (config->atiesh_mage)
-            critrating+= 28;
-        if (critrating > 0)
-            stats.crit+= critRatingToChance(critrating);
-        if (talents.arcane_instability)
-            stats.crit+= 1.0 * talents.arcane_instability;
-        stats.crit+= stats.intellect/80.0;
+        // Talent bonuses
+        if (talents.cruelty)
+            stats.crit+= talents.cruelty;
+        if (talents.precision)
+            stats.hit+= talents.precision;
+        if (talents.axe_spec)
+            stats.crit+= talents.axe_spec;
+        if (talents.polearm_spec)
+            stats.crit+= talents.polearm_spec;
 
-        // Spell hit
-        if (config->totem_of_wrath)
-            stats.hit+= 3.0;
-        if (race == RACE_DRAENEI || (config->inspiring_presence && faction() == FACTION_ALLIANCE))
-            stats.hit+= 1.0;
+        // Raid buff multipliers
+        if (config->trueshot_aura)
+            stats.attack_power = round(stats.attack_power * 1.1);
+        if (config->unleashed_rage)
+            stats.attack_power = round(stats.attack_power * 1.1);
+        if (config->battle_squawk)
+            stats.attack_power = round(stats.attack_power * 1.05);
     }
 
     void setDefaultTalents()
     {
-        talents.arcane_focus = 5;
-        talents.arcane_impact = 3;
-        talents.arcane_instability = 3;
-        talents.clearcast = 5;
-        talents.arcane_meditation = 3;
-        talents.arcane_potency = 3;
-        talents.arcane_mind = 5;
-        talents.spell_power = 2;
-        talents.presence_of_mind = 1;
-        talents.arcane_power = 1;
-        talents.mind_mastery = 5;
-        talents.empowered_arcane_missiles = 0;
-        talents.elemental_precision = 3;
-        talents.imp_frostbolt = 5;
-        talents.icy_veins = 1;
-        talents.cold_snap = 1;
-        talents.ice_shards = 5;
-        talents.piercing_ice = 3;
-        talents.frost_channeling = 3;
+        // Fury build (17/44/0)
+        talents.cruelty = 5;
+        talents.unbridled_wrath = 5;
+        talents.commanding_presence = 5;
+        talents.dual_wield_spec = 5;
+        talents.imp_execute = 2;
+        talents.enrage = 5;
+        talents.precision = 3;
+        talents.death_wish = 1;
+        talents.imp_berserker_rage = 2;
+        talents.flurry = 5;
+        talents.intensify_rage = 3;
+        talents.bloodthirst = 1;
+        talents.imp_whirlwind = 2;
+        talents.imp_berserker_stance = 5;
+        talents.rampage = 1;
+        
+        // Arms
+        talents.imp_heroic_strike = 3;
+        talents.deflection = 5;
+        talents.imp_rend = 3;
+        talents.tactical_mastery = 1;
+        talents.deep_wounds = 3;
+        talents.two_handed_spec = 2;
     }
 
     void loadTalentsFromString(std::string str)
@@ -257,72 +256,60 @@ public:
             else {
                 p = str[i] - '0';
 
-                if (tree == 0 && t == 1) talents.arcane_focus = p;
-                else if (tree == 0 && t == 5) talents.clearcast = p;
-                else if (tree == 0 && t == 7) talents.arcane_impact = p;
-                else if (tree == 0 && t == 11) talents.arcane_meditation = p;
-                else if (tree == 0 && t == 13) talents.presence_of_mind = p;
-                else if (tree == 0 && t == 14) talents.arcane_mind = p;
-                else if (tree == 0 && t == 16) talents.arcane_instability = p;
-                else if (tree == 0 && t == 17) talents.arcane_potency = p;
-                else if (tree == 0 && t == 18) talents.empowered_arcane_missiles = p;
-                else if (tree == 0 && t == 19) talents.arcane_power = p;
-                else if (tree == 0 && t == 20) talents.spell_power = p;
-                else if (tree == 0 && t == 21) talents.mind_mastery = p;
-                else if (tree == 1 && t == 0) talents.imp_fireball = p;
-                else if (tree == 1 && t == 2) talents.ignite = p;
-                else if (tree == 1 && t == 4) talents.imp_fire_blast = p;
-                else if (tree == 1 && t == 5) talents.incinerate = p;
-                else if (tree == 1 && t == 7) talents.pyroblast = p;
-                else if (tree == 1 && t == 9) talents.imp_scorch = p;
-                else if (tree == 1 && t == 11) talents.master_of_elements = p;
-                else if (tree == 1 && t == 12) talents.playing_with_fire = p;
-                else if (tree == 1 && t == 13) talents.critical_mass = p;
-                else if (tree == 1 && t == 16) talents.fire_power = p;
-                else if (tree == 1 && t == 17) talents.pyromaniac = p;
-                else if (tree == 1 && t == 18) talents.combustion = p;
-                else if (tree == 1 && t == 19) talents.molten_fury = p;
-                else if (tree == 1 && t == 20) talents.empowered_fireball = p;
-                else if (tree == 2 && t == 1) talents.imp_frostbolt = p;
-                else if (tree == 2 && t == 2) talents.elemental_precision = p;
-                else if (tree == 2 && t == 3) talents.ice_shards = p;
-                else if (tree == 2 && t == 7) talents.piercing_ice = p;
-                else if (tree == 2 && t == 8) talents.icy_veins = p;
-                else if (tree == 2 && t == 11) talents.frost_channeling = p;
-                else if (tree == 2 && t == 14) talents.cold_snap = p;
-                else if (tree == 2 && t == 17) talents.winters_chill = p;
-                else if (tree == 2 && t == 19) talents.arctic_winds = p;
-                else if (tree == 2 && t == 20) talents.empowered_frostbolt = p;
+                // Arms tree
+                if (tree == 0 && t == 0) talents.imp_heroic_strike = p;
+                else if (tree == 0 && t == 1) talents.deflection = p;
+                else if (tree == 0 && t == 2) talents.imp_rend = p;
+                else if (tree == 0 && t == 3) talents.imp_charge = p;
+                else if (tree == 0 && t == 4) talents.tactical_mastery = p;
+                else if (tree == 0 && t == 5) talents.imp_overpower = p;
+                else if (tree == 0 && t == 6) talents.anger_management = p;
+                else if (tree == 0 && t == 7) talents.deep_wounds = p;
+                else if (tree == 0 && t == 8) talents.two_handed_spec = p;
+                else if (tree == 0 && t == 9) talents.impale = p;
+                else if (tree == 0 && t == 10) talents.axe_spec = p;
+                else if (tree == 0 && t == 11) talents.sweeping_strikes = p;
+                else if (tree == 0 && t == 12) talents.mace_spec = p;
+                else if (tree == 0 && t == 13) talents.sword_spec = p;
+                else if (tree == 0 && t == 14) talents.polearm_spec = p;
+                else if (tree == 0 && t == 15) talents.imp_hamstring = p;
+                else if (tree == 0 && t == 16) talents.mortal_strike = p;
+                else if (tree == 0 && t == 17) talents.strength_of_arms = p;
+                else if (tree == 0 && t == 18) talents.imp_mortal_strike = p;
+                else if (tree == 0 && t == 19) talents.unrelenting_assault = p;
+                else if (tree == 0 && t == 20) talents.endless_rage = p;
+                
+                // Fury tree
+                else if (tree == 1 && t == 0) talents.booming_voice = p;
+                else if (tree == 1 && t == 1) talents.cruelty = p;
+                else if (tree == 1 && t == 2) talents.imp_demoralizing_shout = p;
+                else if (tree == 1 && t == 3) talents.unbridled_wrath = p;
+                else if (tree == 1 && t == 4) talents.imp_cleave = p;
+                else if (tree == 1 && t == 5) talents.piercing_howl = p;
+                else if (tree == 1 && t == 6) talents.blood_craze = p;
+                else if (tree == 1 && t == 7) talents.commanding_presence = p;
+                else if (tree == 1 && t == 8) talents.dual_wield_spec = p;
+                else if (tree == 1 && t == 9) talents.imp_execute = p;
+                else if (tree == 1 && t == 10) talents.enrage = p;
+                else if (tree == 1 && t == 11) talents.precision = p;
+                else if (tree == 1 && t == 12) talents.death_wish = p;
+                else if (tree == 1 && t == 13) talents.imp_intercept = p;
+                else if (tree == 1 && t == 14) talents.imp_berserker_rage = p;
+                else if (tree == 1 && t == 15) talents.flurry = p;
+                else if (tree == 1 && t == 16) talents.intensify_rage = p;
+                else if (tree == 1 && t == 17) talents.bloodthirst = p;
+                else if (tree == 1 && t == 18) talents.imp_whirlwind = p;
+                else if (tree == 1 && t == 19) talents.imp_berserker_stance = p;
+                else if (tree == 1 && t == 20) talents.rampage = p;
 
                 t++;
             }
         }
     }
 
-    double spiritManaPerSecond()
-    {
-        return 0.001 + stats.spirit*0.009327 * sqrt(stats.intellect);
-    }
-
-    double staticManaPerSecond()
-    {
-        double mps = 0;
-
-        if (stats.mp5)
-            mps+= stats.mp5/5.0;
-
-        return mps;
-    }
-
-    double maxMana()
-    {
-        // Subtract 280 because the first 20 intellect only gives 1 mana instead of 15
-        return base_mana + stats.intellect*15 - 280;
-    }
-
     Faction faction()
     {
-        if (race == RACE_GNOME || race == RACE_HUMAN || race == RACE_DRAENEI)
+        if (race == RACE_HUMAN || race == RACE_DWARF || race == RACE_NIGHT_ELF || race == RACE_GNOME || race == RACE_DRAENEI)
             return FACTION_ALLIANCE;
         return FACTION_HORDE;
     }

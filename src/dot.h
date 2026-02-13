@@ -3,9 +3,8 @@ namespace dot
 
     enum ID : int
     {
-        IGNITE = 12848,
-        FIREBALL = 27070,
-        PYROBLAST = 33938,
+        DEEP_WOUNDS = 12867,
+        REND = 25208,
     };
 
 
@@ -35,59 +34,38 @@ namespace dot
 
     };
 
-    class Ignite : public Dot
+    class DeepWounds : public Dot
     {
 
     public:
-        Ignite(double _dmg = 0) : Dot(_dmg)
+        DeepWounds(double _dmg = 0) : Dot(_dmg)
         {
-            id = IGNITE;
-            name = "Ignite";
-            t_interval = 2;
-            ticks = 2;
+            id = DEEP_WOUNDS;
+            name = "Deep Wounds";
+            t_interval = 3;
+            ticks = 4;
             stackable = true;
         }
 
         void stack(double _dmg)
         {
-            if (tick == 0)
-                dmg+= _dmg;
-            else if (tick == 1)
-                dmg = _dmg + round(dmg/2);
-            else
-                dmg = _dmg;
-
+            dmg = _dmg;
             tick = 0;
         }
 
     };
 
-    class Fireball : public Dot
+    class Rend : public Dot
     {
 
     public:
-        Fireball(double _dmg = 0) : Dot(_dmg)
+        Rend(double _dmg = 0) : Dot(_dmg)
         {
-            id = FIREBALL;
-            name = "Fireball";
-            t_interval = 2;
-            ticks = 4;
-            dmg = 21;
-        }
-
-    };
-
-    class Pyroblast : public Dot
-    {
-
-    public:
-        Pyroblast(double _dmg = 0) : Dot(_dmg)
-        {
-            id = PYROBLAST;
-            name = "Pyroblast";
+            id = REND;
+            name = "Rend";
             t_interval = 3;
-            ticks = 4;
-            dmg = 89;
+            ticks = 5;
+            dmg = 147;
         }
 
     };

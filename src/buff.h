@@ -3,59 +3,50 @@ namespace buff
 
     enum ID : int
     {
-        ARCANE_BLAST = 30451,
-        ARCANE_MADNESS = 37444,
-        ARCANE_POWER = 12042,
-        PRESENCE_OF_MIND = 12043,
-        ICY_VEINS = 12472,
-        COMBUSTION = 29977,
-        EVOCATION = 12051,
         BLOODLUST = 2825,
-        POWER_INFUSION = 10060,
-        SYMBOL_OF_HOPE = 32548,
-        INNERVATE = 29166,
-        CLEARCAST = 12536,
-        SILVER_CRESCENT = 35163,
-        ESSENCE_MARTYR = 35165,
-        SERPENT_COIL = 30720,
-        MANA_TIDE = 39609,
-        SPELLSTRIKE = 32106,
-        EYE_OF_MAGTHERIDON = 34747,
-        RESTRAINED_ESSENCE = 28779,
-        QUAGMIRRANS_EYE = 33370,
-        UNSTABLE_CURRENTS = 38348,
-        LIGHTNING_CAPACITOR = 37657,
-        BERSERKING = 20554,
-        MQG = 23723,
-        BLUE_DRAGON = 23684,
-        SPELL_POWER = 35337,
-        CRYSTAL_TALISMAN = 32355,
-        PENDANT_VIOLET_EYE = 29601,
-        ENLIGHTENMENT = 35095,
-        VENGEANCE_ILLIDARI = 33662,
-        ETERNAL_SAGE = 35084,
-        SPELL_BLASTING = 25906,
-        SKULL_GULDAN = 40396,
-        CRIMSON_SERPENT = 46783,
-        SHRUNKEN_HEAD = 43712,
-        NAARU_SLIVER = 45042,
-        DRUMS_OF_BATTLE = 35476,
-        DRUMS_OF_WAR = 35475,
-        DRUMS_OF_RESTORATION = 35478,
-        DESTRUCTION_POTION = 28508,
-        FLAME_CAP = 28714,
-        DARKMOON_CRUSADE = 39438,
-        SPELL_POWER_BONUS = 37619,
-        ASHTONGUE_TALISMAN = 40482,
-        CALL_OF_THE_NEXUS = 34320,
-        FORGOTTEN_KNOWLEDGE = 38319,
-        POWER_OF_ARCANAGOS = 34598,
-        MYSTICAL_SKYFIRE = 32837,
-        FEL_MANA = 38929,
-        FEL_ACHE = 38927,
-        BURST_OF_KNOWLEDGE = 15646,
-        DARK_IRON_PIPE = 51953,
-        LIGHTS_WRATH = 45479,
+        DEATH_WISH = 12328,
+        RECKLESSNESS = 1719,
+        BLOODRAGE = 2687,
+        RAMPAGE = 30033,
+        FLURRY = 12319,
+        ENRAGE = 13048,
+        SWEEPING_STRIKES = 12328,
+        BATTLE_SHOUT = 2048,
+        COMMANDING_SHOUT = 469,
+        
+        // Trinkets
+        BLOODLUST_BROOCH = 28830,
+        ABACUS = 28288,
+        TSUNAMI_TALISMAN = 30627,
+        HOURGLASS = 28034,
+        SLAYERS_CREST = 28121,
+        BADGE_TENACITY = 28528,
+        ICON_UNYIELDING_COURAGE = 28041,
+        DRAGONSPINE_TROPHY = 28830,
+        SHARD_CONTEMPT = 34472,
+        MADNESS = 32505,
+        BLACKENED_NAARU_SLIVER = 34427,
+        ROMULOS_POISON_VIAL = 28579,
+        BLOODMOON = 32492,
+        CRUSADE = 31856,
+        
+        // Consumables
+        DRUMS_OF_BATTLE = 29529,
+        DRUMS_OF_WAR = 29528,
+        HASTE_POTION = 28507,
+        INSANE_STRENGTH_POTION = 22828,
+        
+        // Raid buffs
+        WINDFURY_TOTEM = 8512,
+        GRACE_OF_AIR = 25359,
+        STRENGTH_OF_EARTH = 25528,
+        BLESSING_OF_KINGS = 20217,
+        BLESSING_OF_MIGHT = 27140,
+        MARK_OF_THE_WILD = 26990,
+        LEADER_OF_THE_PACK = 24932,
+        UNLEASHED_RAGE = 30811,
+        TRUESHOT_AURA = 27066,
+        BATTLE_SQUAWK = 23060,
     };
 
 
@@ -82,164 +73,6 @@ namespace buff
 
     };
 
-    class ArcaneBlast : public Buff
-    {
-
-    public:
-        ArcaneBlast()
-        {
-            id = ARCANE_BLAST;
-            name = "Arcane Blast";
-            duration = 8;
-            max_stacks = 3;
-        }
-
-    };
-
-    class ArcaneMadness : public Buff
-    {
-
-    public:
-        ArcaneMadness()
-        {
-            id = ARCANE_MADNESS;
-            name = "Arcane Madness";
-            duration = 6;
-        }
-
-    };
-
-    class ArcanePower : public Buff
-    {
-
-    public:
-        ArcanePower()
-        {
-            id = ARCANE_POWER;
-            name = "Arcane Power";
-            duration = 15;
-        }
-
-    };
-
-    class PresenceOfMind : public Buff
-    {
-
-    public:
-        PresenceOfMind()
-        {
-            id = PRESENCE_OF_MIND;
-            name = "Presence of Mind";
-            duration = 100;
-        }
-
-    };
-
-    class IcyVeins : public Buff
-    {
-
-    public:
-        IcyVeins()
-        {
-            id = ICY_VEINS;
-            name = "Icy Veins";
-            duration = 20;
-        }
-
-    };
-
-    class Combustion : public Buff
-    {
-
-    public:
-        Combustion()
-        {
-            id = COMBUSTION;
-            name = "Combustion";
-            duration = 2000;
-            max_stacks = 20;
-        }
-
-    };
-
-    class Evocation : public Buff
-    {
-
-    public:
-        Evocation(double haste = 1, int ticks = 4)
-        {
-            id = EVOCATION;
-            name = "Evocation";
-            duration = 2.0 * ticks * haste;
-        }
-
-    };
-
-    class SilverCrescent : public Buff
-    {
-
-    public:
-        SilverCrescent()
-        {
-            id = SILVER_CRESCENT;
-            name = "Silver Crescent";
-            duration = 20;
-        }
-
-    };
-
-    class EssenceMartyr : public Buff
-    {
-
-    public:
-        EssenceMartyr()
-        {
-            id = ESSENCE_MARTYR;
-            name = "Essence of the Martyr";
-            duration = 20;
-        }
-
-    };
-
-    class SerpentCoil : public Buff
-    {
-
-    public:
-        SerpentCoil()
-        {
-            id = SERPENT_COIL;
-            name = "Serpent Coil";
-            duration = 15;
-        }
-
-    };
-
-   class DarkIronPipe : public Buff
-    {
-
-    public:
-        DarkIronPipe()
-        {
-            id = DARK_IRON_PIPE;
-            name = "Dark Iron Pipeweed";
-            duration = 20;
-        }
-
-    };
-
-    class Clearcast : public Buff
-    {
-
-    public:
-        Clearcast()
-        {
-            id = CLEARCAST;
-            name = "Clearcast";
-            duration = 15;
-        }
-
-    };
-
     class Bloodlust : public Buff
     {
 
@@ -253,318 +86,291 @@ namespace buff
 
     };
 
-    class PowerInfusion : public Buff
+    class DeathWish : public Buff
     {
 
     public:
-        PowerInfusion()
+        DeathWish()
         {
-            id = POWER_INFUSION;
-            name = "Power Infusion";
+            id = DEATH_WISH;
+            name = "Death Wish";
+            duration = 30;
+        }
+
+    };
+
+    class Recklessness : public Buff
+    {
+
+    public:
+        Recklessness()
+        {
+            id = RECKLESSNESS;
+            name = "Recklessness";
             duration = 15;
         }
 
     };
 
-    class SymbolOfHope : public Buff
+    class Bloodrage : public Buff
     {
 
     public:
-        SymbolOfHope()
+        Bloodrage()
         {
-            id = SYMBOL_OF_HOPE;
-            name = "Symbol of Hope";
-            duration = 15;
-        }
-
-    };
-
-    class Innervate : public Buff
-    {
-
-    public:
-        Innervate()
-        {
-            id = INNERVATE;
-            name = "Innervate";
-            duration = 20;
-        }
-
-    };
-
-    class ManaTide : public Buff
-    {
-
-    public:
-        ManaTide()
-        {
-            id = MANA_TIDE;
-            name = "Mana Tide";
-            duration = 12;
-        }
-
-    };
-
-    class Spellstrike : public Buff
-    {
-
-    public:
-        Spellstrike()
-        {
-            id = SPELLSTRIKE;
-            name = "Lesser Spell Blasting";
+            id = BLOODRAGE;
+            name = "Bloodrage";
             duration = 10;
         }
 
     };
 
-    class EyeOfMagtheridon : public Buff
+    class Rampage : public Buff
     {
 
     public:
-        EyeOfMagtheridon()
+        Rampage()
         {
-            id = EYE_OF_MAGTHERIDON;
-            name = "Recurring Power";
-            duration = 10;
+            id = RAMPAGE;
+            name = "Rampage";
+            duration = 30;
         }
 
     };
 
-    class RestrainedEssence : public Buff
+    class Flurry : public Buff
     {
 
     public:
-        RestrainedEssence()
+        Flurry()
         {
-            id = RESTRAINED_ESSENCE;
-            name = "Essence of Sapphiron";
-            duration = 20;
-        }
-
-    };
-
-    class QuagmirransEye : public Buff
-    {
-
-    public:
-        QuagmirransEye()
-        {
-            id = QUAGMIRRANS_EYE;
-            name = "Spell Haste";
-            duration = 6;
-        }
-
-    };
-
-    class UnstableCurrents : public Buff
-    {
-
-    public:
-        UnstableCurrents()
-        {
-            id = UNSTABLE_CURRENTS;
-            name = "Unstable Currents";
+            id = FLURRY;
+            name = "Flurry";
             duration = 15;
-        }
-
-    };
-
-    class LightningCapacitor : public Buff
-    {
-
-    public:
-        LightningCapacitor()
-        {
-            id = LIGHTNING_CAPACITOR;
-            name = "Lightning Capacitor";
-            duration = 200;
             max_stacks = 3;
         }
 
     };
 
-    class Berserking : public Buff
+    class Enrage : public Buff
     {
 
     public:
-        Berserking()
+        Enrage()
         {
-            id = BERSERKING;
-            name = "Berserking";
+            id = ENRAGE;
+            name = "Enrage";
+            duration = 12;
+        }
+
+    };
+
+    class SweepingStrikes : public Buff
+    {
+
+    public:
+        SweepingStrikes()
+        {
+            id = SWEEPING_STRIKES;
+            name = "Sweeping Strikes";
             duration = 10;
         }
 
     };
 
-    class MindQuickening : public Buff
+    class BattleShout : public Buff
     {
 
     public:
-        MindQuickening()
+        BattleShout()
         {
-            id = MQG;
-            name = "MQG";
+            id = BATTLE_SHOUT;
+            name = "Battle Shout";
+            duration = 120;
+        }
+
+    };
+
+    class BloodlustBrooch : public Buff
+    {
+
+    public:
+        BloodlustBrooch()
+        {
+            id = BLOODLUST_BROOCH;
+            name = "Bloodlust";
             duration = 20;
         }
 
     };
 
-    class BlueDragon : public Buff
+    class Abacus : public Buff
     {
 
     public:
-        BlueDragon()
+        Abacus()
         {
-            id = BLUE_DRAGON;
-            name = "Aura of the Blue Dragon";
-            duration = 15;
+            id = ABACUS;
+            name = "Abacus";
+            duration = 10;
+            max_stacks = 10;
         }
 
     };
 
-    class SpellPower : public Buff
+    class TsunamiTalisman : public Buff
     {
 
     public:
-        SpellPower()
+        TsunamiTalisman()
         {
-            id = SPELL_POWER;
-            name = "Spell Power";
-            duration = 15;
-        }
-
-    };
-
-    class CrystalTalisman : public Buff
-    {
-
-    public:
-        CrystalTalisman()
-        {
-            id = CRYSTAL_TALISMAN;
-            name = "Focused Power";
-            duration = 20;
-        }
-
-    };
-
-    class PendantVioletEye : public Buff
-    {
-
-    public:
-        PendantVioletEye()
-        {
-            id = PENDANT_VIOLET_EYE;
-            name = "Enlightenment";
-            duration = 20;
-            hidden = true;
-        }
-
-    };
-
-    class Enlightenment : public Buff
-    {
-
-    public:
-        Enlightenment()
-        {
-            id = ENLIGHTENMENT;
-            name = "Enlightenment";
-            duration = 20;
-            max_stacks = 100;
-        }
-
-    };
-
-    class VengeanceIllidari : public Buff
-    {
-
-    public:
-        VengeanceIllidari()
-        {
-            id = VENGEANCE_ILLIDARI;
-            name = "Arcane Energy";
-            duration = 15;
-        }
-
-    };
-
-    class EternalSage : public Buff
-    {
-
-    public:
-        EternalSage()
-        {
-            id = ETERNAL_SAGE;
-            name = "Band of Eternal Sage";
+            id = TSUNAMI_TALISMAN;
+            name = "Tsunami Talisman";
             duration = 10;
         }
 
     };
 
-    // Buff associated with Wrath of Cenarius ring
-    class SpellBlasting : public Buff
+    class Hourglass : public Buff
     {
 
     public:
-        SpellBlasting()
+        Hourglass()
         {
-            id = SPELL_BLASTING;
-            name = "Spell Blasting";
+            id = HOURGLASS;
+            name = "Hourglass of the Unraveller";
             duration = 10;
         }
 
     };
 
-    class SkullGuldan : public Buff
+    class SlayersCrest : public Buff
     {
 
     public:
-        SkullGuldan()
+        SlayersCrest()
         {
-            id = SKULL_GULDAN;
-            name = "Fel Infusion";
+            id = SLAYERS_CREST;
+            name = "Slayer's Crest";
             duration = 20;
         }
 
     };
 
-    class CrimsonSerpent : public Buff
+    class BadgeTenacity : public Buff
     {
 
     public:
-        CrimsonSerpent()
+        BadgeTenacity()
         {
-            id = CRIMSON_SERPENT;
-            name = "Crimson Serpent";
+            id = BADGE_TENACITY;
+            name = "Badge of Tenacity";
+            duration = 10;
+        }
+
+    };
+
+    class IconUnyieldingCourage : public Buff
+    {
+
+    public:
+        IconUnyieldingCourage()
+        {
+            id = ICON_UNYIELDING_COURAGE;
+            name = "Icon of Unyielding Courage";
             duration = 20;
         }
 
     };
 
-    class ShrunkenHead : public Buff
+    class DragonspineTrophy : public Buff
     {
 
     public:
-        ShrunkenHead()
+        DragonspineTrophy()
         {
-            id = SHRUNKEN_HEAD;
-            name = "Mojo Madness";
+            id = DRAGONSPINE_TROPHY;
+            name = "Dragonspine Trophy";
+            duration = 10;
+        }
+
+    };
+
+    class ShardContempt : public Buff
+    {
+
+    public:
+        ShardContempt()
+        {
+            id = SHARD_CONTEMPT;
+            name = "Shard of Contempt";
             duration = 20;
         }
 
     };
 
-    class NaaruSliver : public Buff
+    class Madness : public Buff
     {
 
     public:
-        NaaruSliver()
+        Madness()
         {
-            id = NAARU_SLIVER;
-            name = "Power Circle";
-            duration = 15;
+            id = MADNESS;
+            name = "Madness of the Betrayer";
+            duration = 10;
+        }
+
+    };
+
+    class BlackenedNaaruSliver : public Buff
+    {
+
+    public:
+        BlackenedNaaruSliver()
+        {
+            id = BLACKENED_NAARU_SLIVER;
+            name = "Blackened Naaru Sliver";
+            duration = 20;
+        }
+
+    };
+
+    class RomulosPoisonVial : public Buff
+    {
+
+    public:
+        RomulosPoisonVial()
+        {
+            id = ROMULOS_POISON_VIAL;
+            name = "Romulo's Poison Vial";
+            duration = 20;
+        }
+
+    };
+
+    class Bloodmoon : public Buff
+    {
+
+    public:
+        Bloodmoon()
+        {
+            id = BLOODMOON;
+            name = "Bloodmoon";
+            duration = 10;
+        }
+
+    };
+
+    class Crusade : public Buff
+    {
+
+    public:
+        Crusade()
+        {
+            id = CRUSADE;
+            name = "Aura of the Crusade";
+            duration = 10;
+            max_stacks = 10;
         }
 
     };
@@ -595,186 +401,28 @@ namespace buff
 
     };
 
-    class DrumsOfRestoration : public Buff
+    class HastePotion : public Buff
     {
 
     public:
-        DrumsOfRestoration()
+        HastePotion()
         {
-            id = DRUMS_OF_RESTORATION;
-            name = "Drums of Restoration";
-            duration = 30;
-        }
-
-    };
-
-    class DestructionPotion : public Buff
-    {
-
-    public:
-        DestructionPotion()
-        {
-            id = DESTRUCTION_POTION;
-            name = "Destruction";
+            id = HASTE_POTION;
+            name = "Haste Potion";
             duration = 15;
         }
 
     };
 
-    class FlameCap : public Buff
+    class InsaneStrengthPotion : public Buff
     {
 
     public:
-        FlameCap()
+        InsaneStrengthPotion()
         {
-            id = FLAME_CAP;
-            name = "Flame Cap";
-            duration = 60;
-        }
-
-    };
-
-    class DarkmoonCrusade : public Buff
-    {
-
-    public:
-        DarkmoonCrusade()
-        {
-            id = DARKMOON_CRUSADE;
-            name = "Aura of the Crusade";
-            duration = 10;
-            max_stacks = 10;
-        }
-
-    };
-
-    class SpellPowerBonus : public Buff
-    {
-
-    public:
-        SpellPowerBonus()
-        {
-            id = SPELL_POWER_BONUS;
-            name = "Spell Power Bonus";
+            id = INSANE_STRENGTH_POTION;
+            name = "Insane Strength Potion";
             duration = 15;
-        }
-
-    };
-
-    class AshtongueTalisman : public Buff
-    {
-
-    public:
-        AshtongueTalisman()
-        {
-            id = ASHTONGUE_TALISMAN;
-            name = "Insight of the Ashtongue";
-            duration = 5;
-        }
-
-    };
-
-    class CallOfTheNexus : public Buff
-    {
-
-    public:
-        CallOfTheNexus()
-        {
-            id = CALL_OF_THE_NEXUS;
-            name = "Call of the Nexus";
-            duration = 10;
-        }
-
-    };
-
-    class ForgottenKnowledge : public Buff
-    {
-
-    public:
-        ForgottenKnowledge()
-        {
-            id = FORGOTTEN_KNOWLEDGE;
-            name = "Forgotten Knowledge";
-            duration = 6;
-        }
-
-    };
-
-    class PowerOfArcanagos : public Buff
-    {
-
-    public:
-        PowerOfArcanagos()
-        {
-            id = POWER_OF_ARCANAGOS;
-            name = "Power of Arcanagos";
-            duration = 10;
-        }
-
-    };
-
-    class MysticalSkyfire : public Buff
-    {
-
-    public:
-        MysticalSkyfire()
-        {
-            id = MYSTICAL_SKYFIRE;
-            name = "Focus";
-            duration = 4;
-        }
-
-    };
-
-    class FelMana : public Buff
-    {
-
-    public:
-        FelMana()
-        {
-            id = FEL_MANA;
-            name = "Fel Mana";
-            duration = 24;
-        }
-
-    };
-
-    class FelAche : public Buff
-    {
-
-    public:
-        FelAche()
-        {
-            id = FEL_ACHE;
-            name = "Fel Ache";
-            duration = 900;
-        }
-
-    };
-
-    class BurstOfKnowledge : public Buff
-    {
-
-    public:
-        BurstOfKnowledge()
-        {
-            id = BURST_OF_KNOWLEDGE;
-            name = "Burst of Knowledge";
-            duration = 10;
-        }
-
-    };
-
-    // Shattered Sun Pendant of Acumen (Sunwell Neck: Aldor)
-    class LightsWrath : public Buff
-    {
-
-    public:
-        LightsWrath()
-        {
-            id = LIGHTS_WRATH;
-            name = "Light's Wrath";
-            duration = 10;
         }
 
     };

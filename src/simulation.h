@@ -5,7 +5,7 @@ class Event
 
 public:
     double t;
-    double mana;
+    double rage;
     string source;
     EventType type;
     shared_ptr<spell::Spell> spell;
@@ -38,7 +38,7 @@ public:
     {
         clearLog();
         state->reset();
-        state->mana = player->maxMana();
+        state->rage = 0;
     }
 
     SimulationsResult runMultiple(int iterations)
@@ -52,12 +52,6 @@ public:
         int bin;
         map<int, int> histogram;
         ostringstream results;
-
-        double evocated = 0;
-        double evocated_at = 0;
-        double regened = 0;
-        double regened_at = 0;
-        double t_gcd_capped = 0;
 
         if (config->additional_data)
             results << "DPS,Duration\n";
@@ -73,17 +67,6 @@ public:
             if (i == 0 || r.dps > result.max_dps)
                 result.max_dps = r.dps;
             result.avg_dps+= (r.dps - result.avg_dps) / (i+1);
-
-            if (r.evocated_at != -1) {
-                evocated++;
-                evocated_at+= (r.evocated_at - evocated_at) / evocated;
-            }
-            if (r.regened_at != -1) {
-                regened++;
-                regened_at+= (r.regened_at - regened_at) / regened;
-            }
-
-            t_gcd_capped+= (r.t_gcd_capped - t_gcd_capped) / (i+1);
 
             bin = floor(r.dps/bin_size)*bin_size;
             if (histogram.find(bin) != histogram.end())
@@ -111,16 +94,6 @@ public:
         ss << "}";
         result.histogram = ss.str();
 
-        // Stats json string
-        ss.str("");
-        ss.clear();
-        ss << "{";
-        ss << "\"evocated\":{\"t\":" << evocated_at << ",\"n\":" << evocated << "},";
-        ss << "\"regened\":{\"t\":" << regened_at << ",\"n\":" << regened << "},";
-        ss << "\"t_gcd_capped\":" << t_gcd_capped;
-        ss << "}";
-        result.stats = ss.str();
-
         return result;
     }
 
@@ -128,29 +101,24 @@ public:
     {
         reset();
 
-        pushManaRegen();
+        // Start auto attacks
+        pushMeleeMainHand(config->mh_weapon_speed);
+        if (config->dual_wield)
+            pushMeleeOffHand(config->oh_weapon_speed);
 
-        if (config->vampiric_touch)
-            pushVampiricTouch(config->vampiric_touch_regen);
-        if (config->mana_spring)
-            pushManaSpring();
-
-        if (config->innervate) {
-            for (int i=0; i<config->innervate_t.size() && i<config->innervate; i++)
-                pushInnervate(config->innervate_t.at(i));
+        // Setup bloodrage ticks
+        if (config->bloodrage) {
+            for (int i=0; i<config->bloodrage_t.size(); i++)
+                pushBloodrage(config->bloodrage_t.at(i));
         }
+
+        // Setup bloodlust
         if (config->bloodlust) {
             for (int i=0; i<config->bloodlust_t.size(); i++)
                 pushBuffGain(make_shared<buff::Bloodlust>(), config->bloodlust_t.at(i));
         }
-        if (config->power_infusion) {
-            for (int i=0; i<config->power_infusion_t.size(); i++)
-                pushBuffGain(make_shared<buff::PowerInfusion>(), config->power_infusion_t.at(i));
-        }
-        if (config->mana_tide) {
-            for (int i=0; i<config->mana_tide_t.size(); i++)
-                pushBuffGain(make_shared<buff::ManaTide>(), config->mana_tide_t.at(i));
-        }
+
+        // Setup drums
         if (config->drums && config->drums_friend) {
             double t = 0;
             for (int i=0; i<config->drums_t.size(); i++) {
@@ -162,24 +130,11 @@ public:
                 pushDrums(t);
         }
 
-        if (config->fire_vulnerability) {
-            for (double t=1.5; t<state->duration;) {
-                pushDebuffGain(make_shared<debuff::FireVulnerability>(), t);
-                if (t < 7.5)
-                    t+= 1.5;
-                else
-                    t+= 25;
-            }
-        }
-
-        if (config->winters_chill) {
-            for (double t=2.5; t<state->duration;) {
-                pushDebuffGain(make_shared<debuff::WintersChill>(), t);
-                if (t < 12.5)
-                    t+= 2.5;
-                else
-                    t+= 12;
-            }
+        // Setup debuffs
+        if (config->sunder_armor) {
+            pushDebuffGain(make_shared<debuff::SunderArmor>(), 0);
+            for (double t=30; t<state->duration; t+= 30)
+                pushDebuffGain(make_shared<debuff::SunderArmor>(), t);
         }
 
         useCooldowns();
@@ -193,9 +148,6 @@ public:
         result.dmg = state->dmg;
         result.t = state->t;
         result.dps = state->dmg/state->t;
-        result.evocated_at = state->evocated_at;
-        result.regened_at = state->regened_at;
-        result.t_gcd_capped = state->t_gcd_capped;
 
         if (logging) {
             result.log = jsonLog();
@@ -245,10 +197,12 @@ public:
             cast(event->spell);
         else if (event->type == EVENT_SPELL)
             onCast(event->spell);
-        else if (event->type == EVENT_MANA_REGEN)
-            onManaRegen();
-        else if (event->type == EVENT_MANA_GAIN)
-            onManaGain(event->mana, event->source);
+        else if (event->type == EVENT_MELEE_MAIN_HAND)
+            onMeleeMainHand();
+        else if (event->type == EVENT_MELEE_OFF_HAND)
+            onMeleeOffHand();
+        else if (event->type == EVENT_RAGE_GAIN)
+            onRageGain(event->rage, event->source);
         else if (event->type == EVENT_BUFF_GAIN)
             onBuffGain(event->buff);
         else if (event->type == EVENT_BUFF_EXPIRE)
@@ -263,16 +217,12 @@ public:
             onCooldownGain(event->cooldown);
         else if (event->type == EVENT_CD_EXPIRE)
             onCooldownExpire(event->cooldown);
-        else if (event->type == EVENT_MANA_SPRING)
-            onManaSpring();
-        else if (event->type == EVENT_VAMPIRIC_TOUCH)
-            onVampiricTouch(event->mana);
+        else if (event->type == EVENT_BLOODRAGE)
+            bloodrage();
+        else if (event->type == EVENT_BLOODRAGE_TICK)
+            bloodrageTick();
         else if (event->type == EVENT_DRUMS)
             useDrums();
-        else if (event->type == EVENT_INNERVATE)
-            innervate();
-        else if (event->type == EVENT_POWER_INFUSION)
-            powerInfusion();
         else if (event->type == EVENT_WAIT)
             onWait();
     }
@@ -311,38 +261,28 @@ public:
         push(event);
     }
 
-    void pushManaRegen()
+    void pushMeleeMainHand(double t)
     {
         shared_ptr<Event> event(new Event());
-        event->type = EVENT_MANA_REGEN;
-        event->t = 2;
-        push(event);
-    }
-
-    void pushManaSpring(double t = 2)
-    {
-        shared_ptr<Event> event(new Event());
-        event->type = EVENT_MANA_SPRING;
+        event->type = EVENT_MELEE_MAIN_HAND;
         event->t = t;
         push(event);
     }
 
-    void pushVampiricTouch(double mana)
+    void pushMeleeOffHand(double t)
     {
         shared_ptr<Event> event(new Event());
-        event->type = EVENT_VAMPIRIC_TOUCH;
-        event->t = 1;
-        event->mana = mana;
-
+        event->type = EVENT_MELEE_OFF_HAND;
+        event->t = t;
         push(event);
     }
 
-    void pushManaGain(double t, double mana, string source = "")
+    void pushRageGain(double t, double rage, string source = "")
     {
         shared_ptr<Event> event(new Event());
-        event->type = EVENT_MANA_GAIN;
+        event->type = EVENT_RAGE_GAIN;
         event->t = t;
-        event->mana = mana;
+        event->rage = rage;
         event->source = source;
 
         push(event);
@@ -430,20 +370,20 @@ public:
         push(event);
     }
 
-    void pushInnervate(double t)
+    void pushBloodrage(double t)
     {
         shared_ptr<Event> event(new Event());
-        event->type = EVENT_INNERVATE;
+        event->type = EVENT_BLOODRAGE;
         event->t = t;
 
         push(event);
     }
 
-    void pushPowerInfusion(double t)
+    void pushBloodrageTick()
     {
         shared_ptr<Event> event(new Event());
-        event->type = EVENT_POWER_INFUSION;
-        event->t = t;
+        event->type = EVENT_BLOODRAGE_TICK;
+        event->t = 1;
 
         push(event);
     }
@@ -458,30 +398,26 @@ public:
 
         ostringstream s;
         s << std::fixed << std::setprecision(2);
-        s << "Out of mana, waiting " << t << " seconds...";
+        s << "Out of rage, waiting " << t << " seconds...";
         addLog(LOG_WAIT, s.str());
     }
 
     void cast(shared_ptr<spell::Spell> spell)
     {
         if (canCast(spell)) {
-            if (state->t_gcd > state->t) {
+            if (spell->on_gcd && state->t_gcd > state->t) {
                 pushCast(spell, state->t_gcd - state->t);
-                if (!state->was_instant && !spell->proc) {
-                    state->t_gcd_capped+= state->t_gcd - state->t;
-                    logGCD(state->t_gcd - state->t);
-                }
             }
             else {
                 useCooldowns();
 
-                if (!spell->proc)
+                if (spell->on_gcd)
                     state->t_gcd = state->t + gcd();
 
-                if (spell->channeling)
-                    onCast(spell);
+                if (spell->cast_time > 0)
+                    pushSpell(spell, spell->cast_time);
                 else
-                    pushSpell(spell, castTime(spell));
+                    onCast(spell);
             }
         }
         else {
@@ -493,28 +429,9 @@ public:
     {
         shared_ptr<spell::Spell> next = NULL;
 
-        if (spell->tick || canCast(spell)) {
-            if (spell->channeling && !spell->tick) {
-                onCastSuccess(spell);
-
-                double cast_time = castTime(spell);
-                for (int i=1; i<=spell->ticks; i++)
-                    pushSpell(spell, cast_time / spell->ticks * i);
-
-                spell->tick++;
-                return;
-            }
-
-            if (spell->aoe) {
-                for (int i=0; i<config->targets; i++)
-                    onCastDmg(spell);
-            }
-            else {
-                onCastDmg(spell);
-            }
-
-            if (!spell->channeling)
-                onCastSuccess(spell);
+        if (canCast(spell)) {
+            onCastDmg(spell);
+            onCastSuccess(spell);
 
             if (!spell->done || spell->proc)
                 return;
@@ -522,7 +439,7 @@ public:
             next = onCastComplete(spell);
         }
         else {
-            next = defaultSpell();
+            next = nextSpell();
         }
 
         if (next != NULL) {
@@ -542,68 +459,26 @@ public:
         if (spell->proc)
             return;
 
-        spell->actual_cost = manaCost(spell);
-        state->mana-= spell->actual_cost;
-        if (spell->actual_cost > 0)
-            state->t_mana_spent = state->t;
-
-        if (spell->cast_time == 0 || state->hasBuff(buff::PRESENCE_OF_MIND))
-            state->was_instant = true;
-        else if (state->was_instant)
-            state->was_instant = false;
+        spell->actual_cost = rageCost(spell);
+        state->rage-= spell->actual_cost;
 
         if (state->spells.find(spell->id) == state->spells.end())
             state->spells[spell->id].name = spell->name;
         state->spells[spell->id].casts++;
 
-        /**
-         * Clearcast mechanics
-         * */
-        bool has_cc = state->hasBuff(buff::CLEARCAST);
-
-        if (has_cc && spell->channeling)
-            state->cc_snapshot = true;
-        else if (state->cc_snapshot)
-            state->cc_snapshot = false;
-
-        if (has_cc && !spell->channeling && state->t_gcd - state->t < CC_SNAPSHOT_WINDOW)
-            state->cc_queue = true;
-        else if (state->cc_queue)
-            state->cc_queue = false;
-
-        // Expire clearcast 10ms after cast
-        if (has_cc)
-            pushBuffExpire(make_shared<buff::Clearcast>(), CC_SNAPSHOT_WINDOW);
-
-        clearcast();
-
-        if (state->hasBuff(buff::PRESENCE_OF_MIND))
-            onBuffExpire(make_shared<buff::PresenceOfMind>());
-
-        if (spell->actual_cost > 0 && state->hasBuff(buff::PENDANT_VIOLET_EYE))
-            onBuffGain(make_shared<buff::Enlightenment>());
-
-        if (spell->id == spell::FIRE_BLAST)
-            onCooldownGain(make_shared<cooldown::FireBlast>(player->talents.imp_fire_blast));
-
-        // 5% proc rate
-        if (config->meta_gem == META_INSIGHTFUL_EARTHSTORM && random<int>(0, 19) == 0 && !state->hasCooldown(cooldown::INSIGHTFUL_EARTHSTORM)) {
-            onCooldownGain(make_shared<cooldown::InsightfulEarthstorm>());
-            onManaGain(300, "Mana Restore (meta)");
+        // Cooldowns
+        if (spell->cooldown > 0) {
+            if (spell->id == spell::BLOODTHIRST)
+                onCooldownGain(make_shared<cooldown::Bloodthirst>());
+            else if (spell->id == spell::MORTAL_STRIKE)
+                onCooldownGain(make_shared<cooldown::MortalStrike>());
+            else if (spell->id == spell::WHIRLWIND)
+                onCooldownGain(make_shared<cooldown::Whirlwind>());
         }
-        // 15% proc rate
-        if (config->meta_gem == META_MYSTICAL_SKYFIRE && random<int>(0, 19) < 3 && !state->hasCooldown(cooldown::MYSTICAL_SKYFIRE)) {
-            onCooldownGain(make_shared<cooldown::MysticalSkyfire>());
-            onBuffGain(make_shared<buff::MysticalSkyfire>());
-        }
-        // 2% proc rate
-        if (hasTrinket(TRINKET_BLUE_DRAGON) && random<int>(0, 49) == 0)
-            onBuffGain(make_shared<buff::BlueDragon>());
-        // 10% proc rate
-        if (hasTrinket(TRINKET_QUAGMIRRANS_EYE) && !state->hasCooldown(cooldown::QUAGMIRRANS_EYE) && random<int>(0, 9) == 0) {
-            onCooldownGain(make_shared<cooldown::QuagmirransEye>());
-            onBuffGain(make_shared<buff::QuagmirransEye>());
-        }
+
+        // Unbridled Wrath proc (1% per talent point per hit)
+        if (player->talents.unbridled_wrath && random<int>(0, 99) < player->talents.unbridled_wrath)
+            onRageGain(1, "Unbridled Wrath");
     }
 
     void onCastDmg(shared_ptr<spell::Spell> spell)
@@ -612,10 +487,23 @@ public:
             state->spells[spell->id].name = spell->name;
 
         spell->done = true;
-        spell->result = spellRoll(spell);
+        spell->result = attackRoll(spell);
+        
         if (spell->result == spell::MISS) {
             spell->misses++;
             state->spells[spell->id].misses++;
+        }
+        else if (spell->result == spell::DODGE) {
+            spell->dodges++;
+            state->spells[spell->id].dodges++;
+        }
+        else if (spell->result == spell::PARRY) {
+            spell->parries++;
+            state->spells[spell->id].parries++;
+        }
+        else if (spell->result == spell::GLANCE) {
+            spell->glances++;
+            state->spells[spell->id].glances++;
         }
         else if (spell->result == spell::CRIT) {
             spell->crits++;
@@ -626,16 +514,14 @@ public:
             state->spells[spell->id].hits++;
         }
 
-        if (spell->result != spell::MISS) {
-            spell->dmg = spellDmg(spell);
+        if (spell->result != spell::MISS && spell->result != spell::DODGE && spell->result != spell::PARRY) {
+            spell->dmg = attackDmg(spell);
 
             if (spell->result == spell::CRIT)
                 spell->dmg*= critMultiplier(spell);
+            else if (spell->result == spell::GLANCE)
+                spell->dmg*= glanceMultiplier();
 
-            spell->resist = spellDmgResist(spell);
-            spell->dmg-= spell->resist;
-
-            spell->resist = round(spell->resist);
             spell->dmg = round(spell->dmg);
 
             state->dmg+= spell->dmg;
@@ -647,142 +533,61 @@ public:
                 state->spells[spell->id].min_dmg = spell->dmg;
         }
 
-        logSpellDmg(spell);
-
-        if (spell->id == spell::ENGULFING_SHADOWS)
-            onManaGain(100, "Engulfing Shadows");
+        logAttackDmg(spell);
 
         if (spell->proc)
             return;
 
-        if (spell->result == spell::MISS) {
-            if (hasTrinket(TRINKET_EYE_OF_MAGTHERIDON))
-                onBuffGain(make_shared<buff::EyeOfMagtheridon>());
-        }
-        else {
-            if (spell->school == SCHOOL_FIRE && state->hasBuff(buff::COMBUSTION)) {
-                if (spell->result == spell::CRIT)
-                    state->combustion++;
-                if (state->combustion == 3) {
-                    onCooldownGain(make_shared<cooldown::Combustion>());
-                    onBuffExpire(make_shared<buff::Combustion>());
-                    state->combustion = 0;
-                }
-                else {
-                    onBuffGain(make_shared<buff::Combustion>());
-                }
-            }
-
-            if (spell->id == spell::SCORCH && player->talents.imp_scorch) {
-                if (player->talents.imp_scorch == 3 || random<int>(0, 2) < player->talents.imp_scorch) {
-                    onDebuffGain(make_shared<debuff::FireVulnerability>());
-
-                    // Sources say scorch procs trinket twice, I think it's because of fire vuln.
-                    if (hasTrinket(TRINKET_DARKMOON_CRUSADE))
-                        onBuffGain(make_shared<buff::DarkmoonCrusade>());
-                }
-            }
-
-            if (spell->school == SCHOOL_FROST && player->talents.winters_chill) {
-                if (player->talents.winters_chill == 5 || random<int>(0, 4) < player->talents.winters_chill)
-                    onDebuffGain(make_shared<debuff::WintersChill>());
-            }
-
-            if (spell->id == spell::FIREBALL)
-                pushDot(make_shared<dot::Fireball>());
-            if (spell->id == spell::PYROBLAST)
-                pushDot(make_shared<dot::Pyroblast>());
-
-            // 10% proc rate
-            if (config->blade_of_eternal_darkness && random<int>(0, 9) == 0) {
-                cast(make_shared<spell::EngulfingShadows>());
-            }
-            // 15% proc rate
-            if (hasTrinket(TRINKET_MARK_OF_DEFIANCE) && !state->hasCooldown(cooldown::MARK_OF_DEFIANCE) && random<int>(0, 99) < 15) {
-                onCooldownGain(make_shared<cooldown::MarkOfDefiance>());
-                onManaGain(random<double>(128, 173), "Mana Restore (Mark of Defiance)");
-            }
-            // 5% proc rate ?
-            if (config->spellstrike_set && random<int>(0, 19) == 0)
-                onBuffGain(make_shared<buff::Spellstrike>());
-            // 10% proc rate
-            if (config->eternal_sage && !state->hasCooldown(cooldown::ETERNAL_SAGE) && random<int>(0, 9) == 0) {
-                onCooldownGain(make_shared<cooldown::EternalSage>());
-                onBuffGain(make_shared<buff::EternalSage>());
-            }
-            // 15% proc rate
-            if (config->blade_of_wizardry && !state->hasCooldown(cooldown::FORGOTTEN_KNOWLEDGE) && random<int>(0, 19) < 3) {
-                onCooldownGain(make_shared<cooldown::ForgottenKnowledge>());
-                onBuffGain(make_shared<buff::ForgottenKnowledge>());
-            }
-            // 20% proc rate
-            if (config->robe_elder_scribes && !state->hasCooldown(cooldown::POWER_OF_ARCANAGOS) && random<int>(0, 4) == 0) {
-                onCooldownGain(make_shared<cooldown::PowerOfArcanagos>());
-                onBuffGain(make_shared<buff::PowerOfArcanagos>());
-            }
-            // 5% proc rate, cannot refresh itself while up
-            if (config->wrath_of_cenarius && !state->hasCooldown(cooldown::SPELL_BLASTING) && random<int>(0, 19) == 0) {
-                onCooldownGain(make_shared<cooldown::SpellBlasting>());
-                onBuffGain(make_shared<buff::SpellBlasting>());
-            }
-            // 2% proc rate, mana-etched 4-set bonus
-            if (config->mana_etched_4set && random<int>(0, 49) == 0) {
-                onBuffGain(make_shared<buff::SpellPowerBonus>());
-            }
-            // 50% proc rate
-            if (config->judgement_of_wisdom && random<int>(0, 1) == 1)
-                onManaGain(74, "Judgement of Wisdom");
-
-            if (hasTrinket(TRINKET_DARKMOON_CRUSADE))
-                onBuffGain(make_shared<buff::DarkmoonCrusade>());
-
-            // 15% proc rate
-            if (config->sunwell_neck_scryer && !state->hasCooldown(cooldown::ARCANE_BOLT) && random<int>(0, 19) < 3) {
-                onCooldownGain(make_shared<cooldown::ArcaneBolt>());
-                cast(make_shared<spell::ArcaneBolt>());
-            }
-
-            // 15% proc rate
-            if (config->sunwell_neck_aldor && !state->hasCooldown(cooldown::LIGHTS_WRATH) && random<int>(0, 19) < 3) {
-                onBuffGain(make_shared<buff::LightsWrath>());
-                onCooldownGain(make_shared<cooldown::LightsWrath>());
-            }
-
-            if (spell->result == spell::CRIT) {
-                // 20% proc rate
-                if (hasTrinket(TRINKET_UNSTABLE_CURRENTS) && !state->hasCooldown(cooldown::UNSTABLE_CURRENTS) && random<int>(0, 4) == 0) {
-                    onCooldownGain(make_shared<cooldown::UnstableCurrents>());
-                    onBuffGain(make_shared<buff::UnstableCurrents>());
-                }
-                // 20% proc rate
-                if (hasTrinket(TRINKET_NEXUS_HORN) && !state->hasCooldown(cooldown::CALL_OF_THE_NEXUS) && random<int>(0, 4) == 0) {
-                    onCooldownGain(make_shared<cooldown::CallOfTheNexus>());
-                    onBuffGain(make_shared<buff::CallOfTheNexus>());
-                }
-                // 100% proc rate
-                if (hasTrinket(TRINKET_LIGHTNING_CAPACITOR) && !state->hasCooldown(cooldown::LIGHTNING_CAPACITOR))
-                    onBuffGain(make_shared<buff::LightningCapacitor>());
-                // 50% proc rate
-                if (hasTrinket(TRINKET_ASHTONGUE_TALISMAN) && random<int>(0, 1) == 0) {
-                    if (!config->bis_ashtongue)
-                        pushBuffGain(make_shared<buff::AshtongueTalisman>(), 0.01);
-                    else
-                        onBuffGain(make_shared<buff::AshtongueTalisman>());
-                }
-
-                if (config->tirisfal_4set)
-                    onBuffGain(make_shared<buff::ArcaneMadness>());
-
-                if (spell->school == SCHOOL_FIRE && player->talents.ignite)
-                    addIgnite(spell);
-                if ((spell->school == SCHOOL_FIRE || spell->school == SCHOOL_FROST) && player->talents.master_of_elements)
-                    onManaGain(spell->cost * 0.1 * player->talents.master_of_elements, "Master of Elements");
-            }
+        // Generate rage from damage dealt (for white hits)
+        if (spell->is_melee && !spell->normalized && spell->result != spell::MISS && spell->result != spell::DODGE && spell->result != spell::PARRY) {
+            double rage = spell->dmg / 274.7 * 7.5;
+            if (spell->id == spell::MELEE_OFF_HAND)
+                rage*= 0.5;
+            onRageGain(rage, "Melee");
         }
 
-        if (spell->channeling) {
-            spell->done = spell->tick == spell->ticks;
-            spell->tick++;
+        if (spell->result != spell::MISS && spell->result != spell::DODGE && spell->result != spell::PARRY) {
+            // Flurry proc on crit
+            if (spell->result == spell::CRIT && player->talents.flurry) {
+                state->flurry_charges = 3;
+                onBuffGain(make_shared<buff::Flurry>());
+            }
+
+            // Rampage
+            if (spell->result == spell::CRIT && player->talents.rampage)
+                onBuffGain(make_shared<buff::Rampage>());
+
+            // Deep Wounds
+            if (spell->result == spell::CRIT && player->talents.deep_wounds)
+                addDeepWounds(spell);
+
+            // Trinket procs
+            if (hasTrinket(TRINKET_CRUSADE))
+                onBuffGain(make_shared<buff::Crusade>());
+
+            // 10% proc rate
+            if (hasTrinket(TRINKET_DRAGONSPINE_TROPHY) && !state->hasCooldown(cooldown::DRAGONSPINE_TROPHY) && random<int>(0, 9) == 0) {
+                onCooldownGain(make_shared<cooldown::DragonspineTrophy>());
+                onBuffGain(make_shared<buff::DragonspineTrophy>());
+            }
+
+            // 15% proc rate
+            if (hasTrinket(TRINKET_SHARD_CONTEMPT) && !state->hasCooldown(cooldown::SHARD_CONTEMPT) && random<int>(0, 19) < 3) {
+                onCooldownGain(make_shared<cooldown::ShardContempt>());
+                onBuffGain(make_shared<buff::ShardContempt>());
+            }
+
+            // 10% proc rate
+            if (hasTrinket(TRINKET_MADNESS) && !state->hasCooldown(cooldown::MADNESS) && random<int>(0, 9) == 0) {
+                onCooldownGain(make_shared<cooldown::Madness>());
+                onBuffGain(make_shared<buff::Madness>());
+            }
+
+            // 10% proc rate
+            if (hasTrinket(TRINKET_BLOODMOON) && !state->hasCooldown(cooldown::BLOODMOON) && random<int>(0, 9) == 0) {
+                onCooldownGain(make_shared<cooldown::Bloodmoon>());
+                onBuffGain(make_shared<buff::Bloodmoon>());
+            }
         }
     }
 
@@ -790,65 +595,53 @@ public:
     {
         shared_ptr<spell::Spell> next = NULL;
 
-        if (spell->id == spell::ARCANE_BLAST)
-            onBuffGain(make_shared<buff::ArcaneBlast>());
-
-        if (shouldUseManaGem())
-            useManaGem();
-        if (shouldUseManaPotion())
-            useManaPotion();
-
-        if (shouldEvocate()) {
-            evocate();
-            return NULL;
-        }
-
-        if (shouldInnervate())
-            innervate();
-
-        if (shouldSymbolOfHope()) {
-            onCooldownGain(make_shared<cooldown::SymbolOfHope>());
-            onBuffGain(make_shared<buff::SymbolOfHope>());
-        }
+        if (shouldUsePotion())
+            usePotion();
 
         next = nextSpell(spell);
 
         return next;
     }
 
-    void onManaRegen()
+    void onMeleeMainHand()
     {
-        onManaGain(manaPerTick(), "Mana Regen");
-        pushManaRegen();
+        shared_ptr<spell::Spell> spell = make_shared<spell::MeleeMainHand>();
+        
+        // Check for Heroic Strike queue
+        if (shouldHeroicStrike()) {
+            spell = make_shared<spell::HeroicStrike>();
+        }
+
+        onCastDmg(spell);
+        onCastSuccess(spell);
+
+        // Schedule next swing
+        double swing_time = config->mh_weapon_speed / swingHaste();
+        pushMeleeMainHand(swing_time);
     }
 
-    void onManaGain(double mana, string source = "")
+    void onMeleeOffHand()
     {
-        state->mana = min(player->maxMana(), state->mana + mana);
-        logManaGain(mana, source);
+        shared_ptr<spell::Spell> spell = make_shared<spell::MeleeOffHand>();
+        
+        onCastDmg(spell);
+        onCastSuccess(spell);
+
+        // Schedule next swing
+        double swing_time = config->oh_weapon_speed / swingHaste();
+        pushMeleeOffHand(swing_time);
     }
 
-    void onManaSpring()
+    void onRageGain(double rage, string source = "")
     {
-        onManaGain(manaSpringPerTick(), "Mana Spring");
-        pushManaSpring();
-    }
-
-    void onVampiricTouch(double mana)
-    {
-        onManaGain(mana, "Vampiric Touch");
-        pushVampiricTouch(mana);
+        state->rage = min(RAGE_CAP, state->rage + rage);
+        logRageGain(rage, source);
     }
 
     void onDot(shared_ptr<dot::Dot> dot)
     {
         state->dmg+= dot->dmg;
         logDotDmg(dot);
-
-        if (hasTrinket(TRINKET_TIMBALS_FOCUSING_CRYSTAL) && !state->hasCooldown(cooldown::TIMBALS_SHADOW_BOLT) && random<int>(0, 9) == 0) {
-            onCooldownGain(make_shared<cooldown::TimbalsShadowBolt>());
-            cast(make_shared<spell::TimbalsShadowBolt>());
-        }
 
         dot->onTick();
 
@@ -858,25 +651,7 @@ public:
 
     void onWait()
     {
-        shared_ptr<spell::Spell> spell = defaultSpell();
-
-        if (spell->id == spell::ARCANE_BLAST && state->hasBuff(buff::ARCANE_BLAST)) {
-            double t = buffDuration(buff::ARCANE_BLAST) - castTime(spell);
-            double stacks = state->buffStacks(buff::ARCANE_BLAST);
-            if (stacks > 1 && t > 0.0 && timeRemain() > 5.0) {
-                t+= 0.1;
-                pushCast(spell, t);
-
-                ostringstream s;
-                s << std::fixed << std::setprecision(2);
-                s << "AB stacks up, waiting another " << t << " seconds...";
-                addLog(LOG_WAIT, s.str());
-
-                return;
-            }
-        }
-
-        cast(spell);
+        cast(nextSpell());
     }
 
     void onBuffGain(shared_ptr<buff::Buff> buff)
@@ -885,35 +660,8 @@ public:
         removeBuffExpiration(buff);
         pushBuffExpire(buff);
 
-        if (buff->id == buff::MANA_TIDE) {
-            for (double t=3; t<=12; t+= 3)
-                pushManaGain(t, player->maxMana() * 0.06, "Mana Tide");
-
-            // Hold mana spring while mana tide is rolling
-            removeManaSpring();
-            pushManaSpring(14);
-        }
-
-        if (buff->id == buff::DRUMS_OF_RESTORATION) {
-            for (double t = 3; t<=15; t+= 3)
-                pushManaGain(t, 120, "Drums of Restoration");
-        }
-
-        if (buff->id == buff::SYMBOL_OF_HOPE) {
-            for (double t = 5; t<=15; t+= 5)
-                pushManaGain(t, 333, "Symbol of Hope");
-        }
-
         if (stacks)
             logBuffGain(buff, stacks);
-
-        if (buff->id == buff::ARCANE_POWER && state->hasBuff(buff::POWER_INFUSION))
-            onBuffExpire(make_shared<buff::PowerInfusion>());
-
-        if (buff->id == buff::LIGHTNING_CAPACITOR && stacks == 3) {
-            onBuffExpire(buff);
-            fireLightningCapacitor();
-        }
     }
 
     void onBuffExpire(shared_ptr<buff::Buff> buff)
@@ -922,10 +670,8 @@ public:
         logBuffExpire(buff);
         state->removeBuff(buff->id);
 
-        if (buff->id == buff::PENDANT_VIOLET_EYE) {
-            removeBuffExpiration(make_shared<buff::Enlightenment>());
-            state->removeBuff(buff::ENLIGHTENMENT);
-        }
+        if (buff->id == buff::FLURRY)
+            state->flurry_charges = 0;
     }
 
     void onDebuffGain(shared_ptr<debuff::Debuff> debuff)
@@ -959,195 +705,6 @@ public:
         state->removeCooldown(cooldown->id);
     }
 
-    void useManaPotion()
-    {
-        if (nextPotion() == POTION_FEL_MANA)
-            useFelManaPotion();
-        else
-            useRegularManaPotion();
-    }
-
-    void useRegularManaPotion()
-    {
-        double mana = round(random<double>(1800, 3000));
-
-        if (hasTrinket(TRINKET_SORCERERS_ALCHEMIST_STONE) || hasTrinket(TRINKET_ALCHEMIST_STONE))
-            mana*= 1.4;
-
-        onManaGain(mana, "Mana Potion");
-        onCooldownGain(make_shared<cooldown::Potion>());
-    }
-
-    void useFelManaPotion()
-    {
-        double mana = 400; // 3200 over 8 sec
-
-        if (hasTrinket(TRINKET_SORCERERS_ALCHEMIST_STONE) || hasTrinket(TRINKET_ALCHEMIST_STONE))
-            mana*= 1.4;
-
-        for (double t = 3; t<=24; t+= 3)
-            pushManaGain(t, mana, "Fel Mana");
-
-        onBuffGain(make_shared<buff::FelMana>());
-        onBuffGain(make_shared<buff::FelAche>());
-        onCooldownGain(make_shared<cooldown::Potion>());
-    }
-
-    void useManaGem()
-    {
-        double mana = 0;
-
-        if (state->mana_emerald > 0) {
-            mana = round(random<double>(2340, 2460));
-            state->mana_emerald--;
-        }
-        else if (state->mana_ruby > 0) {
-            mana = round(random<double>(1073, 1127));
-            state->mana_ruby--;
-        }
-
-        if (hasTrinket(TRINKET_SERPENT_COIL))
-            mana*= 1.25;
-
-        onManaGain(mana, "Mana Gem");
-        onCooldownGain(make_shared<cooldown::Conjured>());
-
-        if (hasTrinket(TRINKET_SERPENT_COIL))
-            onBuffGain(make_shared<buff::SerpentCoil>());
-    }
-
-    double manaPercent()
-    {
-        return state->mana / player->maxMana() * 100.0;
-    }
-
-    double manaPerSecond()
-    {
-        double mps = player->staticManaPerSecond();
-        double spi = player->spiritManaPerSecond();
-
-        if (state->hasBuff(buff::ENLIGHTENMENT))
-            mps+= 21.0/5.0 * state->buffStacks(buff::ENLIGHTENMENT);
-
-        double while_casting = 0;
-        if (state-> t - state->t_mana_spent >= 5.0) {
-            while_casting = 1;
-        }
-        else if (state->hasBuff(buff::BLUE_DRAGON)) {
-            while_casting = 1;
-        }
-        else if (state->hasBuff(buff::INNERVATE)) {
-            while_casting = 1;
-            spi*= 5;
-        }
-        else {
-            if (player->talents.arcane_meditation)
-                while_casting+= player->talents.arcane_meditation*0.1;
-            if (config->mage_armor)
-                while_casting+= 0.3;
-        }
-
-        mps+= while_casting * spi;
-
-        return mps;
-    }
-
-    double manaPerTick()
-    {
-        return manaPerSecond() * 2;
-    }
-
-    double manaSpringPerTick()
-    {
-        double mpt = 20;
-
-        if (config->improved_mana_spring)
-            mpt*= 1.25;
-
-        return mpt;
-    }
-
-    double totalManaPerSecond()
-    {
-        double mps = manaPerSecond();
-
-        if (config->mana_spring)
-            mps+= manaSpringPerTick() / 2.0;
-
-        return mps;
-    }
-
-    bool canBlast()
-    {
-        // Use 3 stack AB as measure
-        double cast_time = 1.5;
-        double t_remain = timeRemain();
-        double mps = totalManaPerSecond();
-        double mana = state->mana;
-        int stacks = 0;
-
-        double mana_cost_extra = 0;
-        if (config->tirisfal_2set)
-            mana_cost_extra = 39;
-
-        if (state->hasBuff(buff::ARCANE_BLAST) && buffDuration(buff::ARCANE_BLAST) > 1.5)
-            stacks = state->buffStacks(buff::ARCANE_BLAST);
-
-        if (stacks == 0) {
-            // 1st cast
-            mana-= 195 + mana_cost_extra;
-            if (state->hasBuff(buff::ARCANE_BLAST)) {
-                t_remain-= 1.5;
-                mana+= mps*1.5;
-            }
-            else {
-                t_remain-= 2.5;
-                mana+= mps*2.5;
-            }
-            if (t_remain > 0 && mana < 0)
-                return false;
-        }
-
-        if (stacks < 2) {
-            // 2nd cast
-            mana-= 341 + mana_cost_extra;
-            mana+= mps * (2.5 - 1.0/3.0);
-            t_remain-= 2.5 - 1.0/3.0;
-            if (t_remain > 0 && mana < 0)
-                return false;
-        }
-
-        if (stacks < 3) {
-            // 3rd cast
-            mana-= 487 + mana_cost_extra;
-            mana+= mps * (2.5 - 2.0/3.0);
-            t_remain-= 2.5 - 2.0/3.0;
-            if (t_remain > 0 && mana < 0)
-                return false;
-        }
-
-        double mana_cost = 633 + mana_cost_extra;
-        double num_casts = floor(t_remain / cast_time);
-        double t_lastcast = cast_time * (num_casts - 1);
-        double total_mana_cost = num_casts*mana_cost;
-
-        if (config->vampiric_touch)
-            mps+= config->vampiric_touch_regen;
-        if (state->hasBuff(buff::CLEARCAST))
-            total_mana_cost-= mana_cost;
-
-        // We subtract an extra mana cost because its better to go oom a little early than use another frostbolt
-        total_mana_cost-= mana_cost;
-
-        // Bet on another cleastcast
-        if (num_casts >= 10)
-            total_mana_cost-= mana_cost;
-
-        double mana_lastcast = mana - total_mana_cost + mps*t_lastcast;
-
-        return mana_lastcast >= 0;
-    }
-
     double timeRemain()
     {
         return state->duration - state->t;
@@ -1157,221 +714,71 @@ public:
     {
         shared_ptr<spell::Spell> next = NULL;
 
-        if (config->maintain_fire_vulnerability && player->talents.imp_scorch && shouldScorch())
-            return make_shared<spell::Scorch>();
-
-        if (isTimerReady(config->presence_of_mind_t) &&
-            !state->hasCooldown(cooldown::PRESENCE_OF_MIND) &&
-            player->talents.presence_of_mind &&
-            player->talents.pyroblast)
-        {
-            return make_shared<spell::Pyroblast>();
+        // Check execute phase
+        if (!state->execute_phase && timeRemain() / state->duration * 100 <= config->execute_phase_start) {
+            state->execute_phase = true;
+            addLog(LOG_DEBUG, "Execute phase started");
         }
 
-        // Cream
-        if (config->cc_am_queue && state->hasBuff(buff::CLEARCAST)) {
-            if (state->cc_queue)
-                return make_shared<spell::ArcaneMissiles>();
-            if (config->cc_am_repeat && prev != NULL && prev->id == spell::ARCANE_MISSILES)
-                return make_shared<spell::ArcaneMissiles>();
+        // Execute phase
+        if (state->execute_phase && config->use_execute) {
+            if (state->rage >= 15)
+                return make_shared<spell::Execute>();
         }
 
-        if (config->fire_blast_weave && !state->hasCooldown(cooldown::FIRE_BLAST))
-            return make_shared<spell::FireBlast>();
-
-        if (config->main_rotation == MAIN_ROTATION_AB) {
-
-            if (config->ab_haste_stop && 1.0 / (config->ab_haste_stop/100.0 + 1) >= castHaste()) {
-                if (player->talents.imp_frostbolt < player->talents.imp_fireball)
-                    return make_shared<spell::Fireball>();
-                if (player->talents.empowered_arcane_missiles == 3)
-                    return make_shared<spell::ArcaneMissiles>();
-                return make_shared<spell::Frostbolt>();
-            }
-
-            if (canBlast())
-                return defaultSpell();
-
-            if (!state->regen_active) {
-                bool regen_start = false;
-
-                // Check timings
-                for (int i=0; i<config->filler_start_t.size(); i++) {
-                    if (state->t >= config->filler_start_t[i] && (config->filler_end_t.size() < i+1 || state->t < config->filler_end_t[i])) {
-                        regen_start = true;
-                        break;
-                    }
-                }
-
-                // Check mana threshold
-                if (!regen_start) {
-                    // Check evocation timing
-                    if (state->hasCooldown(cooldown::EVOCATION) || config->evocation_at > state->t+8 || manaPercent() < 8) {
-                        if (state->buffStacks(buff::ARCANE_BLAST) >= min(3, config->regen_ab_count) && !state->hasBuff(buff::INNERVATE)) {
-                            double regen_at = config->regen_mana_at;
-                            if (state->hasBuff(buff::BLOODLUST))
-                                regen_at = min(regen_at, 10.0);
-
-                            if (regen_at >= manaPercent())
-                                regen_start = true;
-                        }
-                    }
-                }
-
-                if (regen_start) {
-                    state->regen_active = true;
-                    state->regen_cycle = 0;
-                    if (state->regened_at < 0)
-                        state->regened_at = state->t;
-                }
-            }
-
-            if (state->regen_active) {
-                bool is_done = false;
-
-                if (config->regen_rotation == REGEN_ROTATION_FB) {
-                    if (state->regen_cycle == 3 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle < 3)
-                        next = make_shared<spell::Frostbolt>();
-                    else if (state->regen_cycle == config->regen_ab_count + 2)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_FB11) {
-                    if (state->regen_cycle == 3 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle < 3)
-                        next = make_shared<spell::Frostbolt11>();
-                    else if (state->regen_cycle == config->regen_ab_count + 2)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_AMFB) {
-                    if (state->regen_cycle == 2 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle == 0)
-                        next = make_shared<spell::ArcaneMissiles>();
-                    else if (state->regen_cycle == 1)
-                        next = make_shared<spell::Frostbolt>();
-                    else if (state->regen_cycle == config->regen_ab_count + 1)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_SC) {
-                    if (state->regen_cycle == 5 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle < 5)
-                        next = make_shared<spell::Scorch>();
-                    else if (state->regen_cycle == config->regen_ab_count + 4)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_SCFB) {
-                    if (state->regen_cycle == 3 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle == 0)
-                        next = make_shared<spell::Scorch>();
-                    else if (state->regen_cycle < 3)
-                        next = make_shared<spell::Fireball>();
-                    else if (state->regen_cycle == config->regen_ab_count + 2)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_AMSC) {
-                    if (state->regen_cycle == 2 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle == 0)
-                        next = make_shared<spell::ArcaneMissiles>();
-                    else if (state->regen_cycle == 1)
-                        next = make_shared<spell::Scorch>();
-                    else if (state->regen_cycle == config->regen_ab_count + 1)
-                        is_done = true;
-                }
-                else if (config->regen_rotation == REGEN_ROTATION_AMAM) {
-                    if (state->regen_cycle == 2 && !willDropArcaneBlast())
-                        state->regen_cycle--;
-                    if (state->regen_cycle < 2)
-                        next = make_shared<spell::ArcaneMissiles>();
-                    else if (state->regen_cycle == config->regen_ab_count + 1)
-                        is_done = true;
-                }
-
-                if (is_done) {
-                    state->regen_cycle = 0;
-                    if (config->regen_stop_at <= manaPercent())
-                        state->regen_active = false;
-                }
-                else {
-                    state->regen_cycle++;
-                }
-            }
+        // Main rotation abilities
+        if (config->main_rotation == MAIN_ROTATION_BT) {
+            if (!state->hasCooldown(cooldown::BLOODTHIRST) && player->talents.bloodthirst)
+                return make_shared<spell::Bloodthirst>();
+        }
+        else if (config->main_rotation == MAIN_ROTATION_MS) {
+            if (!state->hasCooldown(cooldown::MORTAL_STRIKE) && player->talents.mortal_strike)
+                return make_shared<spell::MortalStrike>();
         }
 
-        if (config->main_rotation == MAIN_ROTATION_AE && !canCast(defaultSpell()))
-            next = make_shared<spell::ArcaneExplosion1>();
+        // Whirlwind
+        if (config->use_whirlwind && !state->hasCooldown(cooldown::WHIRLWIND))
+            return make_shared<spell::Whirlwind>();
 
-        if (next == NULL)
-            next = defaultSpell();
-
-        return next;
-    }
-
-    bool willDropArcaneBlast()
-    {
-        return !state->hasBuff(buff::ARCANE_BLAST) || buffDuration(buff::ARCANE_BLAST) <= castTime(make_shared<spell::ArcaneBlast>());
-    }
-
-    shared_ptr<spell::Spell> defaultSpell()
-    {
-        if (config->main_rotation == MAIN_ROTATION_AB)
-            return make_shared<spell::ArcaneBlast>();
-        if (config->main_rotation == MAIN_ROTATION_AE)
-            return make_shared<spell::ArcaneExplosion>();
-        if (config->main_rotation == MAIN_ROTATION_AM)
-            return make_shared<spell::ArcaneMissiles>();
-        if (config->main_rotation == MAIN_ROTATION_SC)
-            return make_shared<spell::Scorch>();
-        if (config->main_rotation == MAIN_ROTATION_FIB)
-            return make_shared<spell::Fireball>();
-        if (config->main_rotation == MAIN_ROTATION_FRB)
-            return make_shared<spell::Frostbolt>();
-
+        // Default: wait for cooldowns
         return NULL;
     }
 
-    void addIgnite(shared_ptr<spell::Spell> spell)
+    bool shouldHeroicStrike()
     {
-        double dmg = round(spell->dmg * 0.04 * player->talents.ignite);
+        if (!config->use_heroic_strike)
+            return false;
+
+        if (state->rage < config->heroic_strike_rage_threshold)
+            return false;
+
+        return true;
+    }
+
+    void addDeepWounds(shared_ptr<spell::Spell> spell)
+    {
+        double dmg = spell->dmg * 0.16 * player->talents.deep_wounds;
 
         for (auto itr = queue.begin(); itr != queue.end(); itr++) {
-            if ((*itr)->type == EVENT_DOT && (*itr)->dot->id == dot::IGNITE) {
+            if ((*itr)->type == EVENT_DOT && (*itr)->dot->id == dot::DEEP_WOUNDS) {
                 (*itr)->dot->stack(dmg);
                 (*itr)->t = state->t + (*itr)->dot->t_interval;
                 return;
             }
         }
 
-        pushDot(make_shared<dot::Ignite>(dmg));
+        pushDot(make_shared<dot::DeepWounds>(dmg));
     }
 
     void useCooldowns()
     {
-        if (isTimerReady(config->arcane_power_t) && !state->hasCooldown(cooldown::ARCANE_POWER) && player->talents.arcane_power)
-            useArcanePower();
-        if (isTimerReady(config->presence_of_mind_t) && !state->hasCooldown(cooldown::PRESENCE_OF_MIND) && player->talents.presence_of_mind)
-            usePresenceOfMind();
-        if (isTimerReady(config->icy_veins_t) && !state->hasCooldown(cooldown::ICY_VEINS) && player->talents.icy_veins)
-            useIcyVeins();
-        if (isTimerReady(config->cold_snap_t) && !state->hasCooldown(cooldown::COLD_SNAP) && player->talents.cold_snap)
-            useColdSnap();
-        if (isTimerReady(config->combustion_t) && !state->hasCooldown(cooldown::COMBUSTION) && !state->hasBuff(buff::COMBUSTION) && player->talents.combustion)
-            useCombustion();
-        if (isTimerReady(config->berserking_t) && !state->hasCooldown(cooldown::BERSERKING) && player->race == RACE_TROLL)
-            useBerserking();
+        if (isTimerReady(config->death_wish_t) && !state->hasCooldown(cooldown::DEATH_WISH) && player->talents.death_wish && config->death_wish)
+            useDeathWish();
+        if (isTimerReady(config->recklessness_t) && !state->hasCooldown(cooldown::RECKLESSNESS) && config->recklessness)
+            useRecklessness();
 
-        if (!state->hasCooldown(cooldown::POTION) && nextPotion() != POTION_NONE && nextPotion() != POTION_MANA && isTimerReady(config->potion_t))
+        if (!state->hasCooldown(cooldown::POTION) && nextPotion() != POTION_NONE && isTimerReady(config->potion_t))
             usePotion();
-
-        if (!state->hasCooldown(cooldown::CONJURED) && config->conjured != CONJURED_NONE) {
-            if (config->conjured == CONJURED_MANA_GEM && isTimerReadyExplicit(config->conjured_t) || config->conjured != CONJURED_MANA_GEM && isTimerReady(config->conjured_t))
-                useConjured();
-        }
 
         if (!state->hasCooldown(cooldown::TRINKET1) && !isTrinketOnSharedCD(config->trinket1) && isTimerReady(config->trinket1_t))
             useTrinket(config->trinket1, cooldown::TRINKET1);
@@ -1382,47 +789,36 @@ public:
 
     void useTrinket(Trinket trinket_id, cooldown::ID cd)
     {
-        double duration = 120; // Most trinkets are 2 min
+        double duration = 120;
         shared_ptr<buff::Buff> buff = NULL;
 
-        if (trinket_id == TRINKET_RESTRAINED_ESSENCE)
-            buff = make_shared<buff::RestrainedEssence>();
-        if (trinket_id == TRINKET_SILVER_CRESCENT)
-           buff = make_shared<buff::SilverCrescent>();
-        if (trinket_id == TRINKET_SMOKING_PIPE)
-           buff = make_shared<buff::DarkIronPipe>();
-        if (trinket_id == TRINKET_ESSENCE_MARTYR)
-           buff = make_shared<buff::EssenceMartyr>();
-        if (trinket_id == TRINKET_CRYSTAL_TALISMAN)
-           buff = make_shared<buff::CrystalTalisman>();
-        if (trinket_id == TRINKET_PENDANT_VIOLET_EYE)
-           buff = make_shared<buff::PendantVioletEye>();
-        if (trinket_id == TRINKET_SKULL_GULDAN)
-           buff = make_shared<buff::SkullGuldan>();
-        if (trinket_id == TRINKET_CRIMSON_SERPENT)
-           buff = make_shared<buff::CrimsonSerpent>();
-        if (trinket_id == TRINKET_SHRUNKEN_HEAD)
-           buff = make_shared<buff::ShrunkenHead>();
-
-        if (trinket_id == TRINKET_SCRYERS_BLOODGEM || trinket_id == TRINKET_XIRIS_GIFT) {
-            buff = make_shared<buff::SpellPower>();
+        if (trinket_id == TRINKET_BLOODLUST_BROOCH)
+            buff = make_shared<buff::BloodlustBrooch>();
+        if (trinket_id == TRINKET_ABACUS)
+            buff = make_shared<buff::Abacus>();
+        if (trinket_id == TRINKET_TSUNAMI_TALISMAN)
+            buff = make_shared<buff::TsunamiTalisman>();
+        if (trinket_id == TRINKET_HOURGLASS)
+            buff = make_shared<buff::Hourglass>();
+        if (trinket_id == TRINKET_SLAYERS_CREST) {
+            buff = make_shared<buff::SlayersCrest>();
+            duration = 120;
+        }
+        if (trinket_id == TRINKET_BADGE_TENACITY) {
+            buff = make_shared<buff::BadgeTenacity>();
             duration = 90;
         }
-        if (trinket_id == TRINKET_MQG) {
-            buff = make_shared<buff::MindQuickening>();
-            duration = 300;
+        if (trinket_id == TRINKET_ICON_UNYIELDING_COURAGE) {
+            buff = make_shared<buff::IconUnyieldingCourage>();
+            duration = 120;
         }
-        if (trinket_id == TRINKET_VENGEANCE_ILLIDARI) {
-            buff = make_shared<buff::VengeanceIllidari>();
-            duration = 90;
+        if (trinket_id == TRINKET_BLACKENED_NAARU_SLIVER) {
+            buff = make_shared<buff::BlackenedNaaruSliver>();
+            duration = 120;
         }
-        if (trinket_id == TRINKET_NAARU_SLIVER) {
-            buff = make_shared<buff::NaaruSliver>();
-            duration = 90;
-        }
-        if (trinket_id == TRINKET_BURST_OF_KNOWLEDGE) {
-            buff = make_shared<buff::BurstOfKnowledge>();
-            duration = 900;
+        if (trinket_id == TRINKET_ROMULOS_POISON_VIAL) {
+            buff = make_shared<buff::RomulosPoisonVial>();
+            duration = 120;
         }
 
         if (buff != NULL) {
@@ -1442,11 +838,7 @@ public:
 
     bool trinketSharesCD(Trinket trinket_id)
     {
-        if (trinket_id == TRINKET_ESSENCE_MARTYR)
-            return false;
-        if (trinket_id == TRINKET_BURST_OF_KNOWLEDGE)
-            return false;
-        if (trinket_id == TRINKET_PENDANT_VIOLET_EYE)
+        if (trinket_id == TRINKET_BERSERKERS_CALL)
             return false;
 
         return true;
@@ -1460,8 +852,6 @@ public:
             buff = make_shared<buff::DrumsOfBattle>();
         else if (config->drums == DRUMS_OF_WAR)
             buff = make_shared<buff::DrumsOfWar>();
-        else if (config->drums == DRUMS_OF_RESTORATION)
-            buff = make_shared<buff::DrumsOfRestoration>();
         else
             return;
 
@@ -1477,85 +867,47 @@ public:
 
     void usePotion()
     {
-        if (nextPotion() == POTION_DESTRUCTION)
-            onBuffGain(make_shared<buff::DestructionPotion>());
+        if (nextPotion() == POTION_HASTE)
+            onBuffGain(make_shared<buff::HastePotion>());
+        else if (nextPotion() == POTION_INSANE_STRENGTH)
+            onBuffGain(make_shared<buff::InsaneStrengthPotion>());
         else
             return;
 
         onCooldownGain(make_shared<cooldown::Potion>());
     }
 
-    void useConjured()
+    void useDeathWish()
     {
-        double cd = 120;
-
-        if (config->conjured == CONJURED_FLAME_CAP) {
-            cd = 180;
-            onBuffGain(make_shared<buff::FlameCap>());
-        }
-        else if (config->conjured == CONJURED_MANA_GEM) {
-            useManaGem();
-        }
-        else {
-            return;
-        }
-
-        onCooldownGain(make_shared<cooldown::Conjured>(cd));
+        onCooldownGain(make_shared<cooldown::DeathWish>());
+        onBuffGain(make_shared<buff::DeathWish>());
     }
 
-    void useArcanePower()
+    void useRecklessness()
     {
-        onCooldownGain(make_shared<cooldown::ArcanePower>());
-        onBuffGain(make_shared<buff::ArcanePower>());
+        onCooldownGain(make_shared<cooldown::Recklessness>());
+        onBuffGain(make_shared<buff::Recklessness>());
     }
 
-    void usePresenceOfMind()
+    void bloodrage()
     {
-        onCooldownGain(make_shared<cooldown::PresenceOfMind>());
-        onBuffGain(make_shared<buff::PresenceOfMind>());
+        onCooldownGain(make_shared<cooldown::Bloodrage>());
+        onBuffGain(make_shared<buff::Bloodrage>());
+        onRageGain(10, "Bloodrage");
+
+        // Schedule ticks
+        for (int i=1; i<=10; i++)
+            pushBloodrageTick();
     }
 
-    void useIcyVeins()
+    void bloodrageTick()
     {
-        state->mana-= player->base_mana * 0.03;
-        onCooldownGain(make_shared<cooldown::IcyVeins>());
-        onBuffGain(make_shared<buff::IcyVeins>());
-    }
-
-    void useColdSnap()
-    {
-        onCooldownGain(make_shared<cooldown::ColdSnap>());
-        addLog(LOG_NONE, "Casted Cold Snap");
-
-        if (player->talents.icy_veins)
-            useIcyVeins();
-    }
-
-    void useCombustion()
-    {
-        onBuffGain(make_shared<buff::Combustion>());
-    }
-
-    void useBerserking()
-    {
-        state->mana-= player->base_mana * 0.06;
-        onCooldownGain(make_shared<cooldown::Berserking>());
-        onBuffGain(make_shared<buff::Berserking>());
+        onRageGain(1, "Bloodrage");
     }
 
     bool hasTrinket(Trinket trinket)
     {
         return config->trinket1 == trinket || config->trinket2 == trinket;
-    }
-
-    void removeManaSpring()
-    {
-        for (auto itr = queue.begin(); itr != queue.end(); itr++) {
-            if ((*itr)->type == EVENT_MANA_SPRING) {
-                queue.erase(itr);
-                return;
-            }
-        }
     }
 
     void removeBuffExpiration(shared_ptr<buff::Buff> buff)
@@ -1608,98 +960,41 @@ public:
         return 0;
     }
 
-    double debuffDuration(debuff::ID id)
-    {
-        for (auto itr = queue.begin(); itr != queue.end(); itr++) {
-            if ((*itr)->type == EVENT_DEBUFF_EXPIRE && (*itr)->debuff->id == id)
-                return (*itr)->t - state->t;
-        }
-
-        return 0;
-    }
-
     bool canCast(shared_ptr<spell::Spell> spell)
     {
-        return state->mana >= manaCost(spell);
+        return state->rage >= rageCost(spell);
     }
 
-    double manaCost(shared_ptr<spell::Spell> spell, bool ignore_clearcast = false)
+    double rageCost(shared_ptr<spell::Spell> spell)
     {
-        if (state->hasBuff(buff::CLEARCAST) && !ignore_clearcast)
-            return 0;
+        double cost = spell->cost;
 
-        double multi = 1;
-        double discount = 0;
-        double cost;
+        // Improved Heroic Strike
+        if (spell->id == spell::HEROIC_STRIKE && player->talents.imp_heroic_strike)
+            cost-= player->talents.imp_heroic_strike;
 
-        if (spell->id == spell::ARCANE_BLAST) {
-            multi+= 0.75 * state->buffStacks(buff::ARCANE_BLAST);
-            if (config->tirisfal_2set)
-                multi+= 0.2;
-        }
+        // Focused Rage
+        if (player->talents.focused_rage)
+            cost-= cost * 0.03 * player->talents.focused_rage;
 
-        if (state->hasBuff(buff::BURST_OF_KNOWLEDGE))
-            discount+= 100;
+        // Intensify Rage
+        if (player->talents.intensify_rage && (spell->id == spell::BLOODTHIRST || spell->id == spell::MORTAL_STRIKE || spell->id == spell::WHIRLWIND))
+            cost-= cost * 0.05 * player->talents.intensify_rage;
 
-        /*
-         * Additive multipliers
-         */
-        if (spell->school == SCHOOL_FROST && player->talents.frost_channeling)
-            multi-= player->talents.frost_channeling*0.05;
-
-        if (spell->school == SCHOOL_FIRE && player->talents.pyromaniac)
-            multi-= player->talents.pyromaniac*0.01;
-
-        if (spell->id == spell::ARCANE_MISSILES && player->talents.empowered_arcane_missiles)
-            multi+= player->talents.empowered_arcane_missiles * 0.02;
-
-        if (state->hasBuff(buff::ARCANE_POWER))
-            multi+= 0.3;
-
-        cost = (spell->cost - discount) * multi;
-
-        /*
-         * Multiplicative multipliers
-         */
-        if ((spell->school == SCHOOL_FROST || spell->school == SCHOOL_FIRE) && player->talents.elemental_precision)
-            cost*= (1.0 - player->talents.elemental_precision*0.01);
-
-        if (state->hasBuff(buff::POWER_INFUSION))
-            cost*= 0.8;
-
-        return round(cost);
+        return max(0.0, cost);
     }
 
     double gcd()
     {
         double t = 1.5;
-        double cap = 1.0;
+        double cap = GCD_MIN;
 
-        t*= castHaste();
+        t/= castHaste();
 
-        if (t < cap && !config->gcd_unlocked)
+        if (t < cap)
             t = cap;
 
         return t;
-    }
-
-    double castTime(shared_ptr<spell::Spell> spell, bool ignore_pom = false)
-    {
-        if (state->hasBuff(buff::PRESENCE_OF_MIND) && !ignore_pom)
-            return 0;
-
-        double t = spell->cast_time;
-
-        if (spell->id == spell::ARCANE_BLAST && state->hasBuff(buff::ARCANE_BLAST))
-            t-= (state->buffStacks(buff::ARCANE_BLAST)/3.0);
-
-        if (spell->id == spell::FROSTBOLT && player->talents.imp_frostbolt)
-            t-= player->talents.imp_frostbolt*0.1;
-
-        if (spell->id == spell::FIREBALL && player->talents.imp_fireball)
-            t-= player->talents.imp_fireball*0.1;
-
-        return t * castHaste();
     }
 
     double castHaste()
@@ -1708,56 +1003,47 @@ public:
         double phaste = player->stats.haste;
         double rating = 0;
 
-        if (state->hasBuff(buff::SKULL_GULDAN))
-            rating+= 175;
-        if (state->hasBuff(buff::QUAGMIRRANS_EYE))
-            rating+= 320;
-        if (state->hasBuff(buff::FORGOTTEN_KNOWLEDGE))
-            rating+= 280;
-        if (state->hasBuff(buff::MYSTICAL_SKYFIRE))
-            rating+= 320;
-        if (state->hasBuff(buff::MQG))
-            rating+= 330;
-        if (state->hasBuff(buff::ASHTONGUE_TALISMAN))
-            rating+= 145;
+        if (state->hasBuff(buff::BLOODLUST))
+            haste*= 1.3;
         if (state->hasBuff(buff::DRUMS_OF_BATTLE))
             rating+= 80;
+        if (state->hasBuff(buff::HASTE_POTION))
+            rating+= 400;
 
         if (rating)
             phaste+= hasteRatingToHaste(rating);
 
         haste+= phaste/100.0;
 
-        if (state->hasBuff(buff::BLOODLUST))
-            haste*= 1.3;
-        if (state->hasBuff(buff::POWER_INFUSION))
-            haste*= 1.2;
-        if (state->hasBuff(buff::ICY_VEINS))
-            haste*= 1.2;
-        if (state->hasBuff(buff::BERSERKING))
-            haste*= 1.1;
+        return haste;
+    }
 
-        return 1.0 / haste;
+    double swingHaste()
+    {
+        double haste = castHaste();
+
+        // Flurry
+        if (state->hasBuff(buff::FLURRY) && state->flurry_charges > 0) {
+            haste*= 1.0 + (0.05 * player->talents.flurry);
+            state->flurry_charges--;
+            if (state->flurry_charges == 0)
+                onBuffExpire(make_shared<buff::Flurry>());
+        }
+
+        // Windfury Totem (not haste, but increases swing speed)
+        if (config->windfury_totem)
+            haste*= 1.16;
+
+        return haste;
     }
 
     double hitChance(shared_ptr<spell::Spell> spell)
     {
-        double hit = 83.0 + player->stats.hit;
+        double hit = 91.0 + player->stats.hit;
 
-        if (config->targets > 1)
-            hit+= 11;
-
-        if (spell->school == SCHOOL_ARCANE && player->talents.arcane_focus)
-            hit+= player->talents.arcane_focus*2.0;
-
-        // This is supposedly bugged for binary spells to give 2% hit each point
-        // They say it was actually that way in TBC so we'll keep it like this for now
-        if (spell->school == SCHOOL_FIRE || spell->school == SCHOOL_FROST) {
-            if (spell->binary && player->talents.elemental_precision)
-                hit+= player->talents.elemental_precision*2.0;
-            else if (player->talents.elemental_precision)
-                hit+= player->talents.elemental_precision;
-        }
+        // Dual wield penalty
+        if (config->dual_wield && spell->is_melee)
+            hit-= 19;
 
         return min(hit, 99.0);
     }
@@ -1765,93 +1051,104 @@ public:
     double critChance(shared_ptr<spell::Spell> spell)
     {
         double crit = player->stats.crit;
-        double rating = 0;
 
-        if (rating)
-            crit+= critRatingToChance(rating);
+        // Rampage
+        if (state->hasBuff(buff::RAMPAGE))
+            crit+= 5.0;
 
-        if (spell->id == spell::ARCANE_BLAST && player->talents.arcane_impact)
-            crit+= player->talents.arcane_impact*2.0;
-        if (spell->id == spell::SCORCH && player->talents.incinerate)
-            crit+= player->talents.incinerate*2.0;
-        if (spell->id == spell::FROSTBOLT && player->talents.empowered_frostbolt)
-            crit+= player->talents.empowered_frostbolt*1.0;
+        // Leader of the Pack
+        if (config->leader_of_the_pack)
+            crit+= 5.0;
 
-        // Clearcast
-        if (player->talents.arcane_potency && !spell->proc) {
-            // Normal clearcast
-            if (state->hasBuff(buff::CLEARCAST))
-                crit+= player->talents.arcane_potency*10.0;
-            // Snapshotted cc
-            if (state->cc_snapshot && spell->channeling)
-                crit+= player->talents.arcane_potency*10.0;
-        }
+        // Recklessness
+        if (state->hasBuff(buff::RECKLESSNESS))
+            crit+= 100.0;
 
-        if (state->hasBuff(buff::COMBUSTION) && spell->school == SCHOOL_FIRE)
-            crit+= state->buffStacks(buff::COMBUSTION)*10.0;
-        if (state->hasBuff(buff::DESTRUCTION_POTION))
-            crit+= 2.0;
-
-        if (spell->school == SCHOOL_FIRE && player->talents.critical_mass)
-            crit+= player->talents.critical_mass*2.0;
-        if (spell->school == SCHOOL_FIRE && player->talents.pyromaniac)
-            crit+= player->talents.pyromaniac*1.0;
-        if (spell->school == SCHOOL_FROST && state->hasDebuff(debuff::WINTERS_CHILL))
-            crit+= state->debuffStacks(debuff::WINTERS_CHILL)*2;
+        // Enrage
+        if (state->hasBuff(buff::ENRAGE))
+            crit+= 10.0 * player->talents.enrage / 5.0;
 
         return crit;
     }
 
     double critMultiplier(shared_ptr<spell::Spell> spell)
     {
-        double base = 1.5;
+        double base = 2.0;
         double talents = 1;
 
+        if (config->meta_gem == META_RELENTLESS_EARTHSTORM)
+            base*= 1.03;
         if (config->meta_gem == META_CHAOTIC_SKYFIRE)
             base*= 1.03;
 
         if (spell->proc)
             return base;
 
-        if (player->talents.spell_power)
-            talents+= player->talents.spell_power*0.25;
-
-        if (spell->school == SCHOOL_FROST && player->talents.ice_shards)
-            talents+= player->talents.ice_shards*0.2;
+        // Impale
+        if (player->talents.impale)
+            talents+= player->talents.impale * 0.1;
 
         return (base - 1) * talents + 1;
+    }
+
+    double glanceMultiplier()
+    {
+        // Boss is level 73, glancing blows do ~75% damage
+        return 0.75;
     }
 
     double buffDmgMultiplier(shared_ptr<spell::Spell> spell)
     {
         double multi = 1;
 
-        if (config->imp_sanctity)
-            multi*= 1.02;
-        for (int i=0; i<config->ferocious_inspiration; i++)
-            multi*= 1.03;
-
-        if (player->talents.arcane_instability)
-            multi*= 1 + (player->talents.arcane_instability * 0.01);
-        if (player->talents.playing_with_fire)
-            multi*= 1 + (player->talents.playing_with_fire * 0.01);
-        if (player->talents.piercing_ice && spell->school == SCHOOL_FROST)
-            multi*= 1 + (player->talents.piercing_ice * 0.02);
-        if (player->talents.arctic_winds && spell->school == SCHOOL_FROST)
-            multi*= 1 + (player->talents.arctic_winds * 0.01);
-        if (player->talents.fire_power && spell->school == SCHOOL_FIRE)
-            multi*= 1 + (player->talents.fire_power * 0.02);
-        // Below 20% - We'll estimate that to last 20% of duration
-        if (player->talents.molten_fury && state->t / state->duration >= 0.8)
-            multi*= 1 + (player->talents.molten_fury * 0.1);
-
-        if (state->hasBuff(buff::ARCANE_POWER) && !spell->proc)
-            multi*= 1.3;
-
-        if (spell->id == spell::ARCANE_BLAST && config->tirisfal_2set)
+        // Death Wish
+        if (state->hasBuff(buff::DEATH_WISH))
             multi*= 1.2;
 
-        if ((spell->id == spell::ARCANE_MISSILES || spell->id == spell::FROSTBOLT || spell->id == spell::FIREBALL) && config->tempest_4set)
+        // Enrage
+        if (state->hasBuff(buff::ENRAGE))
+            multi*= 1.0 + (0.05 * player->talents.enrage / 5.0);
+
+        // Two-Handed Weapon Specialization
+        if (!config->dual_wield && player->talents.two_handed_spec)
+            multi*= 1.0 + (player->talents.two_handed_spec * 0.01);
+
+        // Dual Wield Specialization (only for special attacks)
+        if (config->dual_wield && player->talents.dual_wield_spec && spell->normalized)
+            multi*= 1.0 + (player->talents.dual_wield_spec * 0.01);
+
+        // Trinket buffs
+        if (state->hasBuff(buff::BLOODLUST_BROOCH))
+            multi*= 1.1;
+        if (state->hasBuff(buff::ABACUS))
+            multi*= 1.0 + (state->buffStacks(buff::ABACUS) * 0.01);
+        if (state->hasBuff(buff::TSUNAMI_TALISMAN))
+            multi*= 1.05;
+        if (state->hasBuff(buff::HOURGLASS))
+            multi*= 1.05;
+        if (state->hasBuff(buff::SLAYERS_CREST))
+            multi*= 1.1;
+        if (state->hasBuff(buff::BADGE_TENACITY))
+            multi*= 1.05;
+        if (state->hasBuff(buff::ICON_UNYIELDING_COURAGE))
+            multi*= 1.1;
+        if (state->hasBuff(buff::DRAGONSPINE_TROPHY))
+            multi*= 1.05;
+        if (state->hasBuff(buff::SHARD_CONTEMPT))
+            multi*= 1.1;
+        if (state->hasBuff(buff::MADNESS))
+            multi*= 1.05;
+        if (state->hasBuff(buff::BLACKENED_NAARU_SLIVER))
+            multi*= 1.1;
+        if (state->hasBuff(buff::ROMULOS_POISON_VIAL))
+            multi*= 1.1;
+        if (state->hasBuff(buff::BLOODMOON))
+            multi*= 1.05;
+        if (state->hasBuff(buff::CRUSADE))
+            multi*= 1.0 + (state->buffStacks(buff::CRUSADE) * 0.008);
+
+        // Potion buffs
+        if (state->hasBuff(buff::INSANE_STRENGTH_POTION))
             multi*= 1.05;
 
         return multi;
@@ -1861,366 +1158,113 @@ public:
     {
         double multi = 1;
 
-        if (config->misery)
-            multi*= 1.05;
+        // Blood Frenzy
+        if (config->blood_frenzy)
+            multi*= 1.04;
 
-        if (config->curse_of_elements && (spell->school == SCHOOL_FROST || spell->school == SCHOOL_FIRE || spell->school == SCHOOL_ARCANE)) {
-            if (config->malediction)
-                multi*= 1.13;
-            else
-                multi*= 1.1;
-        }
-
-        if (spell->school == SCHOOL_FIRE && state->hasDebuff(debuff::FIRE_VULNERABILITY))
-            multi*= (1 + state->debuffStacks(debuff::FIRE_VULNERABILITY) * 0.03);
+        // Curse of Recklessness
+        if (config->curse_of_recklessness)
+            multi*= 1.03;
 
         return multi;
     }
 
-    double spellDmg(shared_ptr<spell::Spell> spell)
+    double attackPower()
+    {
+        double ap = player->stats.attack_power;
+
+        // Insane Strength Potion
+        if (state->hasBuff(buff::INSANE_STRENGTH_POTION))
+            ap+= 120;
+
+        return ap;
+    }
+
+    double attackDmg(shared_ptr<spell::Spell> spell)
     {
         double dmg;
+        double weapon_dmg;
+        double ap = attackPower();
 
-        if (config->avg_spell_dmg)
-            dmg = spell->avgDmg();
-        else
-            dmg = random<double>(spell->min_dmg, spell->max_dmg);
-
-        if (spell->coeff) {
-            double sp = player->stats.spell_power;
-            double coeff = spell->coeff;
-
-            if (spell->school == SCHOOL_ARCANE)
-                sp+= player->stats.spell_power_arcane;
-            if (spell->school == SCHOOL_FROST)
-                sp+= player->stats.spell_power_frost;
-            if (spell->school == SCHOOL_FIRE)
-                sp+= player->stats.spell_power_fire;
-
-            if (spell->school == SCHOOL_FIRE && state->hasBuff(buff::FLAME_CAP))
-                sp+= 80.0;
-
-            if (state->hasBuff(buff::ARCANE_MADNESS))
-                sp+= 70.0;
-            if (state->hasBuff(buff::SILVER_CRESCENT))
-                sp+= 155.0;
-            if (state->hasBuff(buff::DARK_IRON_PIPE))
-                sp+= 155.0;
-            if (state->hasBuff(buff::ESSENCE_MARTYR))
-                sp+= 99.0;
-            if (state->hasBuff(buff::SPELL_POWER))
-                sp+= 150.0;
-            if (state->hasBuff(buff::CRYSTAL_TALISMAN))
-                sp+= 104.0;
-            if (state->hasBuff(buff::VENGEANCE_ILLIDARI))
-                sp+= 120.0;
-            if (state->hasBuff(buff::SERPENT_COIL))
-                sp+= 225.0;
-            if (state->hasBuff(buff::SPELLSTRIKE))
-                sp+= 92.0;
-            if (state->hasBuff(buff::UNSTABLE_CURRENTS))
-                sp+= 190.0;
-            if (state->hasBuff(buff::EYE_OF_MAGTHERIDON))
-                sp+= 170.0;
-            if (state->hasBuff(buff::RESTRAINED_ESSENCE))
-                sp+= 130.0;
-            if (state->hasBuff(buff::CALL_OF_THE_NEXUS))
-                sp+= 225.0;
-            if (state->hasBuff(buff::ETERNAL_SAGE))
-                sp+= 95.0;
-            if (state->hasBuff(buff::SPELL_BLASTING))
-                sp+= 132.0;
-            if (state->hasBuff(buff::SPELL_POWER_BONUS))
-                sp+= 110.0;
-            if (state->hasBuff(buff::CRIMSON_SERPENT))
-                sp+= 150.0;
-            if (state->hasBuff(buff::SHRUNKEN_HEAD))
-                sp+= 211.0;
-            if (state->hasBuff(buff::NAARU_SLIVER))
-                sp+= 320.0;
-            if (state->hasBuff(buff::POWER_OF_ARCANAGOS))
-                sp+= 130.0;
-            if (state->hasBuff(buff::DRUMS_OF_WAR))
-                sp+= 30.0;
-            if (state->hasBuff(buff::DESTRUCTION_POTION))
-                sp+= 120.0;
-            if (state->hasBuff(buff::DARKMOON_CRUSADE))
-                sp+= state->buffStacks(buff::DARKMOON_CRUSADE) * 8.0;
-            if (state->hasBuff(buff::LIGHTS_WRATH))
-                sp+= 120.0;
-
-            if (state->hasBuff(buff::FEL_ACHE))
-                sp-= 25.0;
-
-            if (spell->id == spell::ARCANE_MISSILES && player->talents.empowered_arcane_missiles)
-                coeff+= player->talents.empowered_arcane_missiles * 0.15;
-            if (spell->id == spell::FIREBALL && player->talents.empowered_fireball)
-                coeff+= player->talents.empowered_fireball * 0.03;
-            if (spell->id == spell::FROSTBOLT && player->talents.empowered_frostbolt)
-                coeff+= player->talents.empowered_frostbolt * 0.02;
-
-            if (spell->channeling)
-                coeff/= spell->ticks;
-
-            dmg+= sp*coeff;
+        // Calculate weapon damage
+        if (spell->id == spell::MELEE_OFF_HAND || spell->id == spell::HEROIC_STRIKE) {
+            if (config->avg_spell_dmg)
+                weapon_dmg = (config->oh_low_dmg + config->oh_high_dmg) / 2.0;
+            else
+                weapon_dmg = random<double>(config->oh_low_dmg, config->oh_high_dmg);
+        }
+        else {
+            if (config->avg_spell_dmg)
+                weapon_dmg = (config->mh_low_dmg + config->mh_high_dmg) / 2.0;
+            else
+                weapon_dmg = random<double>(config->mh_low_dmg, config->mh_high_dmg);
         }
 
+        // Apply weapon multiplier
+        weapon_dmg*= spell->weapon_multiplier;
+
+        // Normalized attacks use normalized weapon speed
+        if (spell->normalized) {
+            double normalized_speed = config->dual_wield ? 2.4 : 3.3;
+            dmg = weapon_dmg + (ap / 14.0) * normalized_speed;
+        }
+        else {
+            double weapon_speed = (spell->id == spell::MELEE_OFF_HAND) ? config->oh_weapon_speed : config->mh_weapon_speed;
+            dmg = weapon_dmg + (ap / 14.0) * weapon_speed;
+        }
+
+        // Add bonus damage
+        dmg+= spell->bonus_dmg;
+
+        // Execute consumes extra rage for damage
+        if (spell->id == spell::EXECUTE) {
+            double extra_rage = min(state->rage - 15, 15.0);
+            dmg+= extra_rage * 21;
+        }
+
+        // Apply multipliers
         dmg*= buffDmgMultiplier(spell);
-
-        if (spell->aoe && spell->aoe_cap > 0 && dmg > spell->aoe_cap/config->targets)
-            dmg = spell->aoe_cap/config->targets;
-
         dmg*= debuffDmgMultiplier(spell);
 
         return dmg;
     }
 
-    double spellDmgResist(shared_ptr<spell::Spell> spell)
+    spell::Result attackRoll(shared_ptr<spell::Spell> spell)
     {
-        if (spell->binary)
-            return 0.0;
-
-        // No confirmed formulas or resistance tables can be found
-        // This resistance table is based on data from Karazhan in TBC Beta uploaded to WCL
-        // It results in about 6% mitigation
-
-        int resist[4] = {83, 11, 5, 1};
-        int roll = random<int>(0, 99);
-
-        double resistance_multiplier = 0.0;
-        for (int i=0; i<4; i++) {
-            if (roll < resist[i]) {
-                resistance_multiplier = ((float) i) * 0.25;
-                break;
-            }
-
-            roll-= resist[i];
-        }
-
-        if (!resistance_multiplier)
-            return 0.0;
-
-        return spell->dmg * resistance_multiplier;
-    }
-
-    spell::Result spellRoll(shared_ptr<spell::Spell> spell)
-    {
+        // Miss roll
         if (random<double>(0, 100) > hitChance(spell))
             return spell::MISS;
 
+        // Dodge roll (6.5% base for boss)
+        double dodge_chance = 6.5 - player->stats.expertise * 0.25;
+        if (random<double>(0, 100) <= dodge_chance)
+            return spell::DODGE;
+
+        // Parry roll (14% base for boss, only from front)
+        double parry_chance = 14.0 - player->stats.expertise * 0.25;
+        if (random<double>(0, 100) <= parry_chance)
+            return spell::PARRY;
+
+        // Glance roll (only for white hits)
+        if (spell->can_glance && random<double>(0, 100) <= 24.0)
+            return spell::GLANCE;
+
+        // Crit roll
         if (random<double>(0, 100) <= critChance(spell))
             return spell::CRIT;
 
         return spell::HIT;
     }
 
-    void powerInfusion()
+    bool shouldUsePotion()
     {
-        if (state->hasBuff(buff::ARCANE_POWER)) {
-            pushPowerInfusion(buffDuration(buff::ARCANE_POWER));
-            return;
-        }
-
-        onCooldownGain(make_shared<cooldown::PowerInfusion>());
-        onBuffGain(make_shared<buff::PowerInfusion>());
-    }
-
-    void innervate()
-    {
-        state->innervates--;
-        onBuffGain(make_shared<buff::Innervate>());
-    }
-
-    void evocate()
-    {
-        double haste = castHaste();
-        int ticks = 4;
-
-        if (config->tempest_2set)
-            ticks++;
-
-        if (config->evo_ticks > 0 && config->evo_ticks < ticks)
-            ticks = config->evo_ticks;
-
-        state->regen_cycle = 0;
-        state->regen_active = false;
-        onCooldownGain(make_shared<cooldown::Evocation>());
-        onBuffGain(make_shared<buff::Evocation>(castHaste(), ticks));
-
-        for (double i=1; i<=ticks; i++)
-            pushManaGain(i * haste * 2.0, player->maxMana()*0.15, "Evocation");
-
-        shared_ptr<Event> event(new Event());
-        event->type = EVENT_CAST;
-        event->t = ticks * 2.0 * haste;
-        event->spell = defaultSpell();
-        push(event);
-
-        state->evocated_at = state->t;
-    }
-
-    void clearcast()
-    {
-        double chance = player->talents.clearcast * 2;
-        if (random<double>(0, 100) <= chance)
-            onBuffGain(make_shared<buff::Clearcast>());
-    }
-
-    void fireLightningCapacitor()
-    {
-        onCooldownGain(make_shared<cooldown::LightningCapacitor>());
-        cast(make_shared<spell::LightningCapacitor>());
-    }
-
-    bool shouldScorch()
-    {
-        if (!player->talents.imp_scorch)
+        if (nextPotion() == POTION_NONE)
             return false;
 
-        int stacks = state->debuffStacks(debuff::FIRE_VULNERABILITY);
-
-        if (config->fire_vulnerability)
-            return stacks < 4;
-
-        if (stacks < 5)
-            return true;
-
-        // Could calculate cast time for fb + scorch and check if we can scorch in time
-        // but lets be realstic...
-        return debuffDuration(debuff::FIRE_VULNERABILITY) <= 5.0;
-    }
-
-    bool shouldInnervate()
-    {
-        if (!state->innervates || state->hasBuff(buff::INNERVATE))
+        if (state->hasCooldown(cooldown::POTION))
             return false;
 
-        // If we haven't used all the timed innervates
-        if (config->innervate - state->innervates < config->innervate_t.size())
-            return false;
-
-        if (manaPercent() < 40.0 && state->hasBuff(buff::ARCANE_POWER))
-            return true;
-
-        if (manaPercent() < 30.0)
-            return true;
-
-        return false;
-    }
-
-    bool shouldSymbolOfHope()
-    {
-        if (player->faction() != FACTION_ALLIANCE || !config->symbol_of_hope)
-            return false;
-
-        if (state->hasCooldown(cooldown::SYMBOL_OF_HOPE))
-            return false;
-
-        if (config->symbol_of_hope_at)
-           return config->symbol_of_hope_at <= state->t;
-
-        if (state->hasBuff(buff::INNERVATE) || state->hasBuff(buff::MANA_TIDE))
-            return false;
-
-        if (manaPercent() < 60.0 && state->hasCooldown(cooldown::POTION) && state->hasCooldown(cooldown::CONJURED))
-            return true;
-
-        if (manaPercent() < 40.0)
-            return true;
-
-        return false;
-    }
-
-    bool shouldEvocate()
-    {
-        if (state->hasCooldown(cooldown::EVOCATION))
-            return false;
-
-        if (config->evocation_at)
-           return config->evocation_at <= state->t;
-
-        if (state->hasBuff(buff::INNERVATE) || state->hasBuff(buff::MANA_TIDE))
-            return false;
-
-        if (manaPercent() > 20.0)
-            return false;
-
-        if (config->tempest_2set && manaPercent() > 10.0)
-            return false;
-
-        if (state->hasBuff(buff::BLOODLUST) && manaPercent() > 10.0)
-            return false;
-
-        if (config->main_rotation == MAIN_ROTATION_AB && canBlast())
-            return false;
-
-        return true;
-    }
-
-    bool shouldUseManaGem()
-    {
-        if (config->conjured != CONJURED_MANA_GEM || state->hasCooldown(cooldown::CONJURED) || state->hasBuff(buff::INNERVATE))
-            return false;
-
-        // Check for planned mana gem timings
-        for (int i=0; i<config->conjured_t.size(); i++) {
-            if (state->t - config->conjured_t.at(i) < 10)
-                return false;
-        }
-
-        double max = 0;
-        if (state->mana_emerald > 0)
-            max = 2460;
-        else if (state->mana_ruby > 0)
-            max = 1127;
-        else
-            return false;
-
-        if (hasTrinket(TRINKET_SERPENT_COIL))
-            max*= 1.25;
-
-        if (state->hasBuff(buff::MANA_TIDE))
-            max+= player->maxMana() * 0.06;
-
-        return player->maxMana() - state->mana >= max;
-    }
-
-    bool shouldUseManaPotion()
-    {
-        if (nextPotion() != POTION_MANA && nextPotion() != POTION_FEL_MANA)
-            return false;
-
-        if (state->hasCooldown(cooldown::POTION) || state->hasBuff(buff::INNERVATE))
-            return false;
-
-        if (!state->hasCooldown(cooldown::CONJURED) && config->conjured == CONJURED_MANA_GEM && config->conjured_t.size() > 0 && state->hasManaGem())
-            return false;
-
-        double max = 3000;
-
-        if (state->hasBuff(buff::MANA_TIDE))
-            max+= player->maxMana() * 0.06;
-
-        // If gem is configured to be used within 15 sec, count with the mana gain to avoid overcapping
-        if (!state->hasCooldown(cooldown::CONJURED) && config->conjured == CONJURED_MANA_GEM) {
-            bool gem_soon = false;
-            for (int i=0; i<config->conjured_t.size(); i++) {
-                // 10 second margin for when it was supposed to be used
-                if (state->t - config->conjured_t.at(i) < 10 && config->conjured_t.at(i) - state->t < 15) {
-                    gem_soon = true;
-                    break;
-                }
-            }
-
-            if (gem_soon) {
-                double gem = 2460;
-                if (hasTrinket(TRINKET_SERPENT_COIL))
-                    gem*= 1.25;
-                max+= gem;
-            }
-        }
-
-        return player->maxMana() - state->mana >= max;
+        return isTimerReady(config->potion_t);
     }
 
     Potion nextPotion()
@@ -2238,7 +1282,6 @@ public:
         for (int i=0; i<v.size(); i++) {
             if (v.at(i) > t)
                 return false;
-            // We give it a 20 second window to pop, otherwise it's an old timer
             if (v.at(i) <= t && v.at(i) + 20 > t)
                 return true;
         }
@@ -2246,23 +1289,7 @@ public:
         return true;
     }
 
-    bool isTimerReadyExplicit(vector<double>& v, double t = -1)
-    {
-        if (t == -1)
-            t = state->t;
-
-        for (int i=0; i<v.size(); i++) {
-            if (v.at(i) > t)
-                return false;
-            // We give it a 20 second window to pop, otherwise it's an old timer
-            if (v.at(i) <= t && v.at(i) + 20 > t)
-                return true;
-        }
-
-        return false;
-    }
-
-    void logSpellDmg(shared_ptr<spell::Spell> spell)
+    void logAttackDmg(shared_ptr<spell::Spell> spell)
     {
         if (!logging)
             return;
@@ -2271,16 +1298,19 @@ public:
 
         s << spell->name;
         if (spell->result == spell::MISS)
-            s << " was resisted";
+            s << " missed";
+        else if (spell->result == spell::DODGE)
+            s << " was dodged";
+        else if (spell->result == spell::PARRY)
+            s << " was parried";
+        else if (spell->result == spell::GLANCE)
+            s << " glanced for " << spell->dmg;
         else if (spell->result == spell::CRIT)
             s << " crit for " << spell->dmg;
         else
             s << " hit for " << spell->dmg;
 
-        if (spell->resist)
-            s << " (" << spell->resist << " resisted)";
-
-        addLog(LOG_SPELL, s.str());
+        addLog(LOG_MELEE, s.str());
     }
 
     void logDotDmg(shared_ptr<dot::Dot> dot)
@@ -2347,30 +1377,17 @@ public:
         addLog(LOG_BUFF, s.str());
     }
 
-    void logManaGain(double mana, string source)
+    void logRageGain(double rage, string source)
     {
         if (!logging)
             return;
 
         ostringstream s;
 
-        s << fixed << setprecision(0);
-        s << "Gained " << mana << " mana from " << source;
+        s << fixed << setprecision(1);
+        s << "Gained " << rage << " rage from " << source;
 
-        addLog(LOG_MANA, s.str());
-    }
-
-    void logGCD(double t)
-    {
-        if (!logging)
-            return;
-
-        ostringstream s;
-
-        s << fixed << setprecision(2);
-        s << "Waited " << t << "s due to GCD cap.";
-
-        addLog(LOG_GCD_CAP, s.str());
+        addLog(LOG_RAGE, s.str());
     }
 
     string jsonLog()
@@ -2387,8 +1404,8 @@ public:
             s << ",\"t\":" << log[i]->t;
             s << ",\"type\":" << log[i]->type;
             s << ",\"dmg\":" << log[i]->dmg;
-            s << ",\"mana\":" << log[i]->mana;
-            s << ",\"mana_percent\":" << log[i]->mana_percent;
+            s << ",\"rage\":" << log[i]->rage;
+            s << ",\"rage_percent\":" << log[i]->rage_percent;
             s << "}";
         }
 
@@ -2407,17 +1424,15 @@ public:
         entry->text = text;
         entry->t = state->t;
         entry->dmg = state->dmg;
-        entry->mana = state->mana;
-        entry->mana_percent = manaPercent();
+        entry->rage = state->rage;
+        entry->rage_percent = state->rage / RAGE_CAP * 100.0;
 
         log.push_back(entry);
     }
 
-    void printLog(bool show_mana = false)
+    void printLog()
     {
         for (auto itr = log.begin(); itr != log.end(); itr++) {
-            if ((*itr)->type == LOG_MANA && show_mana)
-                continue;
             printf("%.2f %s\n", (*itr)->t, (*itr)->text.c_str());
         }
     }
@@ -2441,8 +1456,11 @@ public:
             s << "\"name\":\"" << itr->second.name << "\",";
             s << "\"casts\":" << itr->second.casts << ",";
             s << "\"misses\":" << itr->second.misses << ",";
+            s << "\"dodges\":" << itr->second.dodges << ",";
+            s << "\"parries\":" << itr->second.parries << ",";
             s << "\"hits\":" << itr->second.hits << ",";
             s << "\"crits\":" << itr->second.crits << ",";
+            s << "\"glances\":" << itr->second.glances << ",";
             s << "\"min_dmg\":" << itr->second.min_dmg << ",";
             s << "\"max_dmg\":" << itr->second.max_dmg << ",";
             s << "\"dmg\":" << itr->second.dmg;

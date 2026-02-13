@@ -1,5 +1,7 @@
 {
     "private": true,
+    "name": "warriorsim-tbc",
+    "description": "Warrior DPS simulator for WoW TBC Classic",
     "dependencies": {
         "chart.js": "^2.9.4",
         "laravel-mix": "^6.0.49",

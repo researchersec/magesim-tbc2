@@ -1,34 +1,24 @@
-const double CC_SNAPSHOT_WINDOW = 0.01;
-
-enum RegenRotation : int
-{
-    REGEN_ROTATION_FB,
-    REGEN_ROTATION_AMFB,
-    REGEN_ROTATION_SC,
-    REGEN_ROTATION_SCFB,
-    REGEN_ROTATION_AMSC,
-    REGEN_ROTATION_AMAM,
-    REGEN_ROTATION_FB11,
-};
+const double GCD_MIN = 1.0;
+const double RAGE_CAP = 100.0;
 
 enum MainRotation: int
 {
-    MAIN_ROTATION_AB,
-    MAIN_ROTATION_AM,
-    MAIN_ROTATION_SC,
-    MAIN_ROTATION_FIB,
-    MAIN_ROTATION_FRB,
-    MAIN_ROTATION_AE,
+    MAIN_ROTATION_BT, // Bloodthirst (Fury)
+    MAIN_ROTATION_MS, // Mortal Strike (Arms)
+    MAIN_ROTATION_SLAM, // Slam spec
 };
 
 enum Race : int
 {
-    RACE_BLOOD_ELF,
-    RACE_DRAENEI,
-    RACE_GNOME,
     RACE_HUMAN,
-    RACE_TROLL,
-    RACE_UNDEAD
+    RACE_DWARF,
+    RACE_NIGHT_ELF,
+    RACE_GNOME,
+    RACE_DRAENEI,
+    RACE_ORC,
+    RACE_UNDEAD,
+    RACE_TAUREN,
+    RACE_TROLL
 };
 
 enum Faction : int
@@ -37,123 +27,90 @@ enum Faction : int
     FACTION_ALLIANCE,
 };
 
-enum School : int
+enum DamageType : int
 {
-    SCHOOL_NONE,
-    SCHOOL_ARCANE,
-    SCHOOL_FROST,
-    SCHOOL_FIRE,
-    SCHOOL_NATURE,
-    SCHOOL_SHADOW,
+    DAMAGE_PHYSICAL,
+    DAMAGE_BLEED,
 };
 
 enum MetaGem : int {
     META_NONE = 0,
+    META_RELENTLESS_EARTHSTORM = 32409,
     META_CHAOTIC_SKYFIRE = 34220,
-    META_EMBER_SKYFIRE = 35503,
-    META_INSIGHTFUL_EARTHSTORM = 25901,
-    META_MYSTICAL_SKYFIRE = 25893,
 };
 
 enum Trinket : int
 {
     TRINKET_NONE = 0,
-    TRINKET_SERPENT_COIL = 30720,
-    TRINKET_SILVER_CRESCENT = 29370,
-    TRINKET_ESSENCE_MARTYR = 29376,
-    TRINKET_EYE_OF_MAGTHERIDON = 28789,
-    TRINKET_RESTRAINED_ESSENCE = 23046,
-    TRINKET_QUAGMIRRANS_EYE = 27683,
-    TRINKET_XIRIS_GIFT = 29179,
-    TRINKET_UNSTABLE_CURRENTS = 30626,
-    TRINKET_LIGHTNING_CAPACITOR = 28785,
-    TRINKET_MQG = 19339,
-    TRINKET_BLUE_DRAGON = 19288,
-    TRINKET_MARK_OF_DEFIANCE = 27924,
-    TRINKET_SCRYERS_BLOODGEM = 29132,
-    TRINKET_CRYSTAL_TALISMAN = 25620,
-    TRINKET_PENDANT_VIOLET_EYE = 28727,
-    TRINKET_VENGEANCE_ILLIDARI = 28040,
-    TRINKET_SKULL_GULDAN = 32483,
-    TRINKET_CRIMSON_SERPENT = 35700,
-    TRINKET_SHRUNKEN_HEAD = 33829,
-    TRINKET_SORCERERS_ALCHEMIST_STONE = 35749,
-    TRINKET_ALCHEMIST_STONE = 13503,
-    TRINKET_NAARU_SLIVER = 34429,
-    TRINKET_DARKMOON_CRUSADE = 31856,
-    TRINKET_ASHTONGUE_TALISMAN = 32488,
-    TRINKET_NEXUS_HORN = 28418,
-    TRINKET_BURST_OF_KNOWLEDGE = 11832,
-    TRINKET_SMOKING_PIPE = 38290,
-    TRINKET_TIMBALS_FOCUSING_CRYSTAL = 34470,
+    TRINKET_BLOODLUST_BROOCH = 28830,
+    TRINKET_ABACUS = 28288,
+    TRINKET_TSUNAMI_TALISMAN = 30627,
+    TRINKET_HOURGLASS = 28034,
+    TRINKET_BERSERKERS_CALL = 23558,
+    TRINKET_SLAYERS_CREST = 28121,
+    TRINKET_BADGE_TENACITY = 28528,
+    TRINKET_ICON_UNYIELDING_COURAGE = 28041,
+    TRINKET_DRAGONSPINE_TROPHY = 28830,
+    TRINKET_SHARD_CONTEMPT = 34472,
+    TRINKET_MADNESS = 32505,
+    TRINKET_BLACKENED_NAARU_SLIVER = 34427,
+    TRINKET_ROMULOS_POISON_VIAL = 28579,
+    TRINKET_BLOODMOON = 32492,
+    TRINKET_CRUSADE = 31856,
 };
 
 enum Food : int
 {
     FOOD_NONE = 0,
-    FOOD_SPELL_POWER = 27657,
-    FOOD_SPELL_CRIT = 33825,
+    FOOD_GRILLED_MUDFISH = 27664,
+    FOOD_RAVAGER_DOG = 27655,
+    FOOD_ROASTED_CLEFTHOOF = 27658,
 };
 
 enum Flask : int
 {
     FLASK_NONE = 0,
-    FLASK_SUPREME_POWER = 13512,
-    FLASK_BLINDING_LIGHT = 22861,
-    FLASK_PURE_DEATH = 22866,
-    FLASK_DISTILLED_WISDOM = 13511,
+    FLASK_RELENTLESS_ASSAULT = 28520,
+    FLASK_FORTIFICATION = 28518,
     FLASK_CHROMATIC_WONDER = 33208,
 };
 
 enum Elixir : int
 {
     ELIXIR_NONE = 0,
-    ELIXIR_MAJOR_MAGEBLOOD = 22840,
-    ELIXIR_DRAENIC_WISDOM = 32067,
-    ELIXIR_GREATER_ARCANE = 13454,
-    ELIXIR_ADEPTS = 28103,
-    ELIXIR_MAJOR_FIREPOWER = 22833,
+    ELIXIR_MAJOR_AGILITY = 22831,
+    ELIXIR_MAJOR_STRENGTH = 28490,
     ELIXIR_MASTERY = 28104,
+    ELIXIR_MAJOR_FORTITUDE = 32062,
 };
 
 enum Drums : int
 {
     DRUMS_NONE = 0,
     DRUMS_OF_WAR = 29528,
-    DRUMS_OF_RESTORATION = 29531,
     DRUMS_OF_BATTLE = 29529,
 };
 
 enum WeaponOil : int
 {
     OIL_NONE = 0,
-    OIL_BRILLIANT_WIZARD = 20749,
-    OIL_SUPERIOR_WIZARD = 22522,
-    OIL_BLESSED_WIZARD = 23123,
-    OIL_SUPERIOR_MANA = 22521,
+    OIL_ADAMANTITE_WEIGHTSTONE = 28421,
 };
 
 enum Potion : int
 {
     POTION_NONE = 0,
-    POTION_MANA = 22832,
-    POTION_DESTRUCTION = 22839,
-    POTION_FEL_MANA = 31677,
-};
-
-enum Conjured : int
-{
-    CONJURED_NONE = 0,
-    CONJURED_MANA_GEM = 22044,
-    CONJURED_FLAME_CAP = 22788,
+    POTION_HASTE = 28507,
+    POTION_INSANE_STRENGTH = 22828,
 };
 
 enum EventType : int
 {
     EVENT_CAST,
     EVENT_SPELL,
-    EVENT_MANA_REGEN,
-    EVENT_MANA_GAIN,
+    EVENT_MELEE_MAIN_HAND,
+    EVENT_MELEE_OFF_HAND,
+    EVENT_RAGE_GAIN,
     EVENT_BUFF_GAIN,
     EVENT_BUFF_EXPIRE,
     EVENT_DEBUFF_GAIN,
@@ -161,11 +118,9 @@ enum EventType : int
     EVENT_DOT,
     EVENT_CD_GAIN,
     EVENT_CD_EXPIRE,
-    EVENT_VAMPIRIC_TOUCH,
+    EVENT_BLOODRAGE,
+    EVENT_BLOODRAGE_TICK,
     EVENT_DRUMS,
-    EVENT_INNERVATE,
-    EVENT_POWER_INFUSION,
-    EVENT_MANA_SPRING,
     EVENT_WAIT
 };
 
@@ -173,12 +128,12 @@ enum LogType : int
 {
     LOG_NONE,
     LOG_SPELL,
-    LOG_MANA,
+    LOG_MELEE,
+    LOG_RAGE,
     LOG_BUFF,
     LOG_DOT,
     LOG_DEBUG,
     LOG_WAIT,
-    LOG_GCD_CAP,
 };
 
 struct LogEntry
@@ -186,8 +141,8 @@ struct LogEntry
     LogType type;
     std::string text;
     double t;
-    double mana;
-    double mana_percent;
+    double rage;
+    double rage_percent;
     int dmg;
 };
 
@@ -196,8 +151,11 @@ struct SpellStats
     std::string name;
     int casts = 0;
     int misses = 0;
+    int dodges = 0;
+    int parries = 0;
     int hits = 0;
     int crits = 0;
+    int glances = 0;
     double dmg = 0;
     double min_dmg = 0;
     double max_dmg = 0;
@@ -208,9 +166,6 @@ struct SimulationResult
     int dmg;
     double t;
     double dps;
-    double evocated_at;
-    double regened_at;
-    double t_gcd_capped;
     std::string log;
     std::string spells;
 };
@@ -231,10 +186,15 @@ double critRatingToChance(double rating)
 
 double hitRatingToChance(double rating)
 {
-    return rating / 12.62;
+    return rating / 15.77;
 }
 
 double hasteRatingToHaste(double rating)
+{
+    return rating / 15.77;
+}
+
+double expertiseRatingToExpertise(double rating)
 {
     return rating / 15.77;
 }

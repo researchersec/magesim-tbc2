@@ -3,27 +3,29 @@ namespace spell
 
     enum ID : int
     {
-        ARCANE_BLAST = 30451,
-        ARCANE_EXPLOSION = 27082,
-        ARCANE_EXPLOSION1 = 1449,
-        ARCANE_MISSILES = 38699,
-        FROSTBOLT = 27072,
-        FROSTBOLT11 = 25304,
-        FIREBALL = 27070,
-        SCORCH = 27074,
-        FIRE_BLAST = 27079,
-        PYROBLAST = 33938,
-        LIGHTNING_CAPACITOR = 28785,
-        ENGULFING_SHADOWS = 21978,
-        ARCANE_BOLT = 45429,
-        TIMBALS_SHADOW_BOLT = 45055,
+        MELEE_MAIN_HAND = 1,
+        MELEE_OFF_HAND = 2,
+        BLOODTHIRST = 30335,
+        MORTAL_STRIKE = 30330,
+        WHIRLWIND = 30357,
+        EXECUTE = 25236,
+        HEROIC_STRIKE = 30324,
+        SLAM = 25242,
+        RAMPAGE = 30033,
+        BLOODRAGE = 2687,
+        DEATH_WISH = 12328,
+        RECKLESSNESS = 1719,
+        SWEEPING_STRIKES = 12328,
     };
 
     enum Result : int
     {
         HIT,
         CRIT,
-        MISS
+        MISS,
+        DODGE,
+        PARRY,
+        GLANCE
     };
 
     class Spell
@@ -36,25 +38,28 @@ namespace spell
         double min_dmg = 0;
         double max_dmg = 0;
         double cast_time = 0;
-        double coeff = 1;
-        bool channeling = false;
+        double cooldown = 0;
+        bool on_gcd = true;
         bool proc = false;
-        bool binary = false;
-        bool aoe = false;
-        double aoe_cap = 0;
-        int ticks = 0;
-        School school;
+        bool normalized = true;
+        double weapon_multiplier = 1.0;
+        double bonus_dmg = 0;
+        DamageType damage_type = DAMAGE_PHYSICAL;
+        bool can_crit = true;
+        bool can_glance = false;
+        bool is_melee = false;
 
         Result result;
         double dmg = 0;
-        double resist = 0;
         double actual_cost = 0;
-        int tick = 0;
         bool done = false;
 
         int misses = 0;
+        int dodges = 0;
+        int parries = 0;
         int hits = 0;
         int crits = 0;
+        int glances = 0;
 
         double avgDmg()
         {
@@ -63,265 +68,145 @@ namespace spell
 
     };
 
-    class ArcaneBlast : public Spell
+    class MeleeMainHand : public Spell
     {
 
     public:
-        ArcaneBlast()
+        MeleeMainHand()
         {
-            id = ARCANE_BLAST;
-            name = "Arcane Blast";
-            cost = 195;
-            min_dmg = 668;
-            max_dmg = 772;
-            cast_time = 2.5;
-            coeff = 2.5/3.5;
-            school = SCHOOL_ARCANE;
-        }
-
-    };
-
-    class ArcaneExplosion : public Spell
-    {
-
-    public:
-        ArcaneExplosion()
-        {
-            id = ARCANE_EXPLOSION;
-            name = "Arcane Explosion";
-            cost = 545;
-            min_dmg = 377;
-            max_dmg = 407;
+            id = MELEE_MAIN_HAND;
+            name = "Melee (MH)";
+            cost = 0;
             cast_time = 0;
-            coeff = 1.5/3.5/2;
-            school = SCHOOL_ARCANE;
-            aoe = true;
-            aoe_cap = 10180;
+            on_gcd = false;
+            normalized = false;
+            is_melee = true;
+            can_glance = true;
         }
 
     };
 
-    class ArcaneExplosion1 : public Spell
+    class MeleeOffHand : public Spell
     {
 
     public:
-        ArcaneExplosion1()
+        MeleeOffHand()
         {
-            id = ARCANE_EXPLOSION1;
-            name = "Arcane Explosion (Rank 1)";
-            cost = 75;
-            min_dmg = 34;
-            max_dmg = 38;
+            id = MELEE_OFF_HAND;
+            name = "Melee (OH)";
+            cost = 0;
             cast_time = 0;
-            coeff = 0.064;
-            school = SCHOOL_ARCANE;
-            aoe = true;
-            aoe_cap = 1000; // Unknown aoe cap, so this is just a complete guess
+            on_gcd = false;
+            normalized = false;
+            weapon_multiplier = 0.5;
+            is_melee = true;
+            can_glance = true;
         }
 
     };
 
-    class ArcaneMissiles : public Spell
+    class Bloodthirst : public Spell
     {
 
     public:
-        ArcaneMissiles()
+        Bloodthirst()
         {
-            id = ARCANE_MISSILES;
-            name = "Arcane Missiles";
-            cost = 740;
-            min_dmg = 265;
-            max_dmg = 265;
-            cast_time = 5;
-            coeff = 5/3.5;
-            school = SCHOOL_ARCANE;
-            channeling = true;
-            ticks = 5;
+            id = BLOODTHIRST;
+            name = "Bloodthirst";
+            cost = 30;
+            cast_time = 0;
+            cooldown = 6.0;
+            normalized = true;
+            is_melee = true;
         }
 
     };
 
-    class Frostbolt : public Spell
+    class MortalStrike : public Spell
     {
 
     public:
-        Frostbolt()
+        MortalStrike()
         {
-            id = FROSTBOLT;
-            name = "Frostbolt";
-            cost = 330;
-            min_dmg = 600;
-            max_dmg = 647;
-            cast_time = 3;
-            coeff = 3/3.5 * 0.95;
-            school = SCHOOL_FROST;
-            binary = true;
+            id = MORTAL_STRIKE;
+            name = "Mortal Strike";
+            cost = 30;
+            bonus_dmg = 210;
+            cast_time = 0;
+            cooldown = 6.0;
+            normalized = true;
+            is_melee = true;
         }
 
     };
 
-    class Frostbolt11 : public Spell
+    class Whirlwind : public Spell
     {
 
     public:
-        Frostbolt11()
+        Whirlwind()
         {
-            id = FROSTBOLT11;
-            name = "Frostbolt (Rank 11)";
-            cost = 290;
-            min_dmg = 527;
-            max_dmg = 568;
-            cast_time = 3;
-            coeff = 3/3.5 * 0.95;
-            school = SCHOOL_FROST;
-            binary = true;
+            id = WHIRLWIND;
+            name = "Whirlwind";
+            cost = 25;
+            cast_time = 0;
+            cooldown = 10.0;
+            normalized = true;
+            is_melee = true;
         }
 
     };
 
-    class Fireball : public Spell
+    class Execute : public Spell
     {
 
     public:
-        Fireball()
+        Execute()
         {
-            id = FIREBALL;
-            name = "Fireball";
-            cost = 425;
-            min_dmg = 649;
-            max_dmg = 821;
-            cast_time = 3.5;
-            coeff = 1;
-            school = SCHOOL_FIRE;
+            id = EXECUTE;
+            name = "Execute";
+            cost = 15; // Base cost, consumes all rage
+            bonus_dmg = 925;
+            cast_time = 0;
+            normalized = false;
+            is_melee = true;
         }
 
     };
 
-    class Scorch : public Spell
+    class HeroicStrike : public Spell
     {
 
     public:
-        Scorch()
+        HeroicStrike()
         {
-            id = SCORCH;
-            name = "Scorch";
-            cost = 180;
-            min_dmg = 305;
-            max_dmg = 361;
+            id = HEROIC_STRIKE;
+            name = "Heroic Strike";
+            cost = 15;
+            bonus_dmg = 176;
+            cast_time = 0;
+            on_gcd = false;
+            normalized = false;
+            is_melee = true;
+        }
+
+    };
+
+    class Slam : public Spell
+    {
+
+    public:
+        Slam()
+        {
+            id = SLAM;
+            name = "Slam";
+            cost = 15;
+            bonus_dmg = 87;
             cast_time = 1.5;
-            coeff = 1.5/3.5;
-            school = SCHOOL_FIRE;
+            normalized = false;
+            is_melee = true;
         }
 
-    };
-
-    class FireBlast : public Spell
-    {
-
-    public:
-        FireBlast()
-        {
-            id = FIRE_BLAST;
-            name = "Fire Blast";
-            cost = 465;
-            min_dmg = 664;
-            max_dmg = 786;
-            cast_time = 0;
-            coeff = 1.5/3.5;
-            school = SCHOOL_FIRE;
-        }
-
-    };
-
-    class Pyroblast : public Spell
-    {
-
-    public:
-        Pyroblast()
-        {
-            id = PYROBLAST;
-            name = "Pyroblast";
-            cost = 500;
-            min_dmg = 939;
-            max_dmg = 1191;
-            cast_time = 6;
-            coeff = 1.15;
-            school = SCHOOL_FIRE;
-        }
-
-    };
-
-    class LightningCapacitor : public Spell
-    {
-
-    public:
-        LightningCapacitor()
-        {
-            id = LIGHTNING_CAPACITOR;
-            name = "Lightning Capacitor";
-            cost = 0;
-            min_dmg = 694;
-            max_dmg = 807;
-            cast_time = 0;
-            school = SCHOOL_NATURE;
-            coeff = 0;
-            proc = true;
-        }
-    };
-
-    class EngulfingShadows : public Spell
-    {
-
-    public:
-        EngulfingShadows()
-        {
-            id = ENGULFING_SHADOWS;
-            name = "Engulfing Shadows";
-            cost = 0;
-            min_dmg = 100;
-            max_dmg = 100;
-            cast_time = 0;
-            school = SCHOOL_SHADOW;
-            coeff = 0;
-            proc = true;
-        }
-    };
-
-    // Shattered Sun Pendant of Acumen (Sunwell Neck: Scryer)
-    class ArcaneBolt : public Spell
-    {
-
-    public:
-        ArcaneBolt()
-        {
-            id = ARCANE_BOLT;
-            name = "Arcane Bolt";
-            cost = 0;
-            min_dmg = 333;
-            max_dmg = 367;
-            cast_time = 0;
-            school = SCHOOL_ARCANE;
-            coeff = 0;
-            proc = true;
-        }
-    };
-
-    class TimbalsShadowBolt : public Spell
-    {
-
-    public:
-        TimbalsShadowBolt()
-        {
-            id = TIMBALS_SHADOW_BOLT;
-            name = "Shadow Bolt";
-            cost = 0;
-            min_dmg = 285;
-            max_dmg = 475;
-            cast_time = 0;
-            school = SCHOOL_SHADOW;
-            coeff = 0;
-            proc = true;
-        }
     };
 
 }

@@ -1,6 +1,6 @@
-# MageSim TBC
+# WarriorSim TBC
 
-Mage DPS simulator for WoW TBC Classic.
+Warrior DPS simulator for WoW TBC Classic.
 
 Backend is written in C++ and compiled with Emscripten into WebAssembly.\
 Frontend is written in Vue.js and SCSS and compiled with Laravel mix.

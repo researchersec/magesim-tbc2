@@ -5,35 +5,26 @@ namespace cooldown
     {
         NONE = 0,
         POTION = 1,
-        CONJURED = 2,
         TRINKET1 = 3,
         TRINKET2 = 4,
         TRINKET_SHARED = 5,
-        EVOCATION = 12051,
-        COLD_SNAP = 11958,
-        BERSERKING = 20554,
-        ICY_VEINS = 12472,
-        FIRE_BLAST = 27079,
-        COMBUSTION = 29977,
-        ARCANE_POWER = 12042,
-        PRESENCE_OF_MIND = 12043,
-        POWER_INFUSION = 10060,
-        SYMBOL_OF_HOPE = 32548,
-        QUAGMIRRANS_EYE = 33370,
-        UNSTABLE_CURRENTS = 38348,
-        ETERNAL_SAGE = 35084,
-        SPELL_BLASTING = 25906,
-        DRUMS = 35476,
-        LIGHTNING_CAPACITOR = 37657,
-        INSIGHTFUL_EARTHSTORM = 27521,
-        MYSTICAL_SKYFIRE = 32837,
-        MARK_OF_DEFIANCE = 33511,
-        CALL_OF_THE_NEXUS = 34320,
-        FORGOTTEN_KNOWLEDGE = 38319,
-        POWER_OF_ARCANAGOS = 34598,
-        LIGHTS_WRATH = 45479,
-        ARCANE_BOLT = 45429,
-        TIMBALS_SHADOW_BOLT = 45055,
+        BLOODTHIRST = 30335,
+        MORTAL_STRIKE = 30330,
+        WHIRLWIND = 30357,
+        DEATH_WISH = 12328,
+        RECKLESSNESS = 1719,
+        BLOODRAGE = 2687,
+        SWEEPING_STRIKES = 12328,
+        DRUMS = 29529,
+        BERSERKERS_CALL = 23558,
+        SLAYERS_CREST = 28121,
+        BADGE_TENACITY = 28528,
+        DRAGONSPINE_TROPHY = 28830,
+        SHARD_CONTEMPT = 34472,
+        MADNESS = 32505,
+        BLACKENED_NAARU_SLIVER = 34427,
+        ROMULOS_POISON_VIAL = 28579,
+        BLOODMOON = 32492,
     };
 
 
@@ -66,18 +57,6 @@ namespace cooldown
 
     };
 
-    class Conjured : public Cooldown
-    {
-
-    public:
-        Conjured(double _duration = 120)
-        {
-            id = CONJURED;
-            duration = _duration;
-        }
-
-    };
-
     class TrinketShared : public Cooldown
     {
 
@@ -90,172 +69,86 @@ namespace cooldown
 
     };
 
-    class IcyVeins : public Cooldown
+    class Bloodthirst : public Cooldown
     {
 
     public:
-        IcyVeins()
+        Bloodthirst()
         {
-            id = ICY_VEINS;
+            id = BLOODTHIRST;
+            duration = 6.0;
+        }
+
+    };
+
+    class MortalStrike : public Cooldown
+    {
+
+    public:
+        MortalStrike()
+        {
+            id = MORTAL_STRIKE;
+            duration = 6.0;
+        }
+
+    };
+
+    class Whirlwind : public Cooldown
+    {
+
+    public:
+        Whirlwind()
+        {
+            id = WHIRLWIND;
+            duration = 10.0;
+        }
+
+    };
+
+    class DeathWish : public Cooldown
+    {
+
+    public:
+        DeathWish()
+        {
+            id = DEATH_WISH;
             duration = 180;
         }
 
     };
 
-    class ArcanePower : public Cooldown
+    class Recklessness : public Cooldown
     {
 
     public:
-        ArcanePower()
+        Recklessness()
         {
-            id = ARCANE_POWER;
-            duration = 180;
+            id = RECKLESSNESS;
+            duration = 1800;
         }
 
     };
 
-    class PresenceOfMind : public Cooldown
+    class Bloodrage : public Cooldown
     {
 
     public:
-        PresenceOfMind()
+        Bloodrage()
         {
-            id = PRESENCE_OF_MIND;
-            duration = 180;
-        }
-
-    };
-
-    class FireBlast : public Cooldown
-    {
-
-    public:
-        FireBlast(int imp_fire_blast = 0)
-        {
-            id = FIRE_BLAST;
-            duration = 8 - imp_fire_blast * 0.5;
-        }
-
-    };
-
-    class Combustion : public Cooldown
-    {
-
-    public:
-        Combustion()
-        {
-            id = COMBUSTION;
-            duration = 180;
-        }
-
-    };
-
-    class Berserking : public Cooldown
-    {
-
-    public:
-        Berserking()
-        {
-            id = BERSERKING;
-            duration = 180;
-        }
-
-    };
-
-    class ColdSnap : public Cooldown
-    {
-
-    public:
-        ColdSnap()
-        {
-            id = COLD_SNAP;
-            duration = 480;
-        }
-
-    };
-
-    class Evocation : public Cooldown
-    {
-
-    public:
-        Evocation()
-        {
-            id = EVOCATION;
-            duration = 480;
-        }
-
-    };
-
-    class PowerInfusion : public Cooldown
-    {
-
-    public:
-        PowerInfusion()
-        {
-            id = POWER_INFUSION;
-            duration = 180;
-        }
-
-    };
-
-    class SymbolOfHope : public Cooldown
-    {
-
-    public:
-        SymbolOfHope()
-        {
-            id = SYMBOL_OF_HOPE;
-            duration = 300;
-        }
-
-    };
-
-    class QuagmirransEye : public Cooldown
-    {
-
-    public:
-        QuagmirransEye()
-        {
-            id = QUAGMIRRANS_EYE;
-            duration = 45;
-        }
-
-    };
-
-    class UnstableCurrents : public Cooldown
-    {
-
-    public:
-        UnstableCurrents()
-        {
-            id = UNSTABLE_CURRENTS;
-            duration = 45;
-        }
-
-    };
-
-    class EternalSage : public Cooldown
-    {
-
-    public:
-        EternalSage()
-        {
-            id = ETERNAL_SAGE;
+            id = BLOODRAGE;
             duration = 60;
         }
 
     };
 
-    /* Wrath of Cenarius ring.
-    Set cooldown = buff duration because it is unable to refresh itself */
-    class SpellBlasting : public Cooldown
+    class SweepingStrikes : public Cooldown
     {
 
     public:
-        SpellBlasting()
+        SweepingStrikes()
         {
-            id = SPELL_BLASTING;
-            duration = 10;
+            id = SWEEPING_STRIKES;
+            duration = 30;
         }
 
     };
@@ -272,124 +165,110 @@ namespace cooldown
 
     };
 
-    class LightningCapacitor : public Cooldown
+    class BerserkersCall : public Cooldown
     {
 
     public:
-        LightningCapacitor()
+        BerserkersCall()
         {
-            id = LIGHTNING_CAPACITOR;
-            duration = 2.5;
+            id = BERSERKERS_CALL;
+            duration = 20;
         }
 
     };
 
-    class InsightfulEarthstorm : public Cooldown
+    class SlayersCrest : public Cooldown
     {
 
     public:
-        InsightfulEarthstorm()
+        SlayersCrest()
         {
-            id = INSIGHTFUL_EARTHSTORM;
-            duration = 15;
+            id = SLAYERS_CREST;
+            duration = 120;
         }
 
     };
 
-    class MysticalSkyfire : public Cooldown
+    class BadgeTenacity : public Cooldown
     {
 
     public:
-        MysticalSkyfire()
+        BadgeTenacity()
         {
-            id = MYSTICAL_SKYFIRE;
-            duration = 35;
+            id = BADGE_TENACITY;
+            duration = 90;
         }
 
     };
 
-    class MarkOfDefiance : public Cooldown
+    class DragonspineTrophy : public Cooldown
     {
 
     public:
-        MarkOfDefiance()
+        DragonspineTrophy()
         {
-            id = MARK_OF_DEFIANCE;
-            duration = 15;
+            id = DRAGONSPINE_TROPHY;
+            duration = 20;
         }
 
     };
 
-    class CallOfTheNexus : public Cooldown
+    class ShardContempt : public Cooldown
     {
 
     public:
-        CallOfTheNexus()
+        ShardContempt()
         {
-            id = CALL_OF_THE_NEXUS;
+            id = SHARD_CONTEMPT;
             duration = 45;
         }
 
     };
 
-    class ForgottenKnowledge : public Cooldown
+    class Madness : public Cooldown
     {
 
     public:
-        ForgottenKnowledge()
+        Madness()
         {
-            id = FORGOTTEN_KNOWLEDGE;
+            id = MADNESS;
             duration = 50;
         }
 
     };
 
-    class PowerOfArcanagos : public Cooldown
+    class BlackenedNaaruSliver : public Cooldown
     {
 
     public:
-        PowerOfArcanagos()
+        BlackenedNaaruSliver()
         {
-            id = POWER_OF_ARCANAGOS;
+            id = BLACKENED_NAARU_SLIVER;
+            duration = 120;
+        }
+
+    };
+
+    class RomulosPoisonVial : public Cooldown
+    {
+
+    public:
+        RomulosPoisonVial()
+        {
+            id = ROMULOS_POISON_VIAL;
+            duration = 120;
+        }
+
+    };
+
+    class Bloodmoon : public Cooldown
+    {
+
+    public:
+        Bloodmoon()
+        {
+            id = BLOODMOON;
             duration = 50;
-        }
-
-    };
-
-    // Shattered Sun Pendant of Acumen (Sunwell Neck: Scryer)
-    class ArcaneBolt : public Cooldown
-    {
-
-    public:
-        ArcaneBolt()
-        {
-            id = ARCANE_BOLT;
-            duration = 45;
-        }
-
-    };
-
-    // Shattered Sun Pendant of Acumen (Sunwell Neck: Aldor)
-    class LightsWrath : public Cooldown
-    {
-
-    public:
-        LightsWrath()
-        {
-            id = LIGHTS_WRATH;
-            duration = 45;
-        }
-
-    };
-
-    class TimbalsShadowBolt : public Cooldown
-    {
-
-    public:
-        TimbalsShadowBolt()
-        {
-            id = TIMBALS_SHADOW_BOLT;
-            duration = 15;
         }
 
     };

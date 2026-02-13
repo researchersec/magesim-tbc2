@@ -32,7 +32,6 @@ using namespace std;
 int main(int argc, char **argv)
 {
     int runs = 1;
-    bool log_mana = false;
 
     shared_ptr<Config> config(new Config());
     shared_ptr<Player> player(new Player(config));

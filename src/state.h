@@ -6,24 +6,14 @@ class State
 public:
     double t;
     double t_gcd;
-    double t_mana_spent;
-    double mana;
+    double rage;
     int dmg;
-    int regen_cycle;
-    bool regen_active;
-    int innervates;
-    int mana_emerald;
-    int mana_ruby;
-    int combustion;
     double duration;
-    bool cc_snapshot;
-    bool cc_queue;
+    double mh_timer;
+    double oh_timer;
     bool used_pot;
-
-    double evocated_at = -1;
-    double regened_at = -1;
-    double t_gcd_capped = 0;
-    bool was_instant = false;
+    bool execute_phase;
+    int flurry_charges;
 
     map<cooldown::ID, shared_ptr<cooldown::Cooldown>> cooldowns;
     map<buff::ID, shared_ptr<buff::Buff>> buffs;
@@ -42,25 +32,15 @@ public:
     {
         t = 0;
         t_gcd = 0;
-        t_mana_spent = -10;
-        mana = 0;
+        rage = 0;
         dmg = 0;
-        regen_cycle = 0;
-        regen_active = false;
-        innervates = config->innervate;
-        mana_emerald = 3;
-        mana_ruby = 1;
-        combustion = 0;
         duration = config->duration;
         duration+= -config->duration_variance + random<double>(0, config->duration_variance*2);
-        cc_snapshot = false;
-        cc_queue = false;
+        mh_timer = 0;
+        oh_timer = 0;
         used_pot = false;
-
-        evocated_at = -1;
-        regened_at = -1;
-        t_gcd_capped = 0;
-        was_instant = false;
+        execute_phase = false;
+        flurry_charges = 0;
 
         buffs.clear();
         debuffs.clear();
@@ -74,11 +54,6 @@ public:
             return 0;
 
         return dmg / t;
-    }
-
-    bool hasManaGem()
-    {
-        return mana_emerald > 0 || mana_ruby > 0;
     }
 
     bool hasCooldown(cooldown::ID id)

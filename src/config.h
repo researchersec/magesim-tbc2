@@ -4,49 +4,49 @@ struct Config
     int duration = 200;
     double duration_variance = 1.5;
     int rng_seed = 0;
-    bool gcd_unlocked = false;
     bool avg_spell_dmg = false;
     bool additional_data = false;
     int targets = 1;
+    
+    // Weapon configuration
+    double mh_weapon_speed = 2.6;
+    double mh_low_dmg = 200;
+    double mh_high_dmg = 372;
+    double oh_weapon_speed = 1.5;
+    double oh_low_dmg = 85;
+    double oh_high_dmg = 159;
+    bool dual_wield = true;
 
-    bool misery = true;
-    bool curse_of_elements = true;
-    bool malediction = false;
-    bool judgement_of_the_crusader = false;
-    bool judgement_of_wisdom = true;
-    bool vampiric_touch = true;
-    int vampiric_touch_regen = 50;
+    // Debuffs
+    bool sunder_armor = true;
+    bool expose_armor = false;
+    bool curse_of_recklessness = true;
+    bool faerie_fire = false;
+    bool blood_frenzy = false;
+    bool mangle = false;
+    bool gift_of_arthas = false;
+    bool improved_hunters_mark = false;
 
-    bool totem_of_wrath = false;
-    bool wrath_of_air = true;
-    bool mana_spring = true;
-    bool improved_mana_spring = false;
-    bool arcane_intellect = true;
-    bool divine_spirit = true;
-    bool improved_divine_spirit = false;
+    // Raid buffs
+    bool battle_shout = true;
+    bool commanding_shout = false;
     bool blessing_of_kings = true;
-    bool blessing_of_wisdom = true;
+    bool blessing_of_might = true;
     bool mark_of_the_wild = true;
-    bool moonkin_aura = false;
-    bool mage_armor = true;
-    bool molten_armor = false;
-    bool inspiring_presence = false;
-    bool fire_vulnerability = false;
-    bool maintain_fire_vulnerability = false;
-    bool winters_chill = false;
-    bool drums_friend = false;
-    bool atiesh_mage = false;
-    bool atiesh_warlock = false;
-    bool eye_of_the_night = false;
-    bool chain_of_the_twilight_owl = false;
-    bool jade_pendant_of_blasting = false;
-    bool scroll_of_spirit = false;
-    bool kreegs = false;
-    bool bloodthistle = false;
-    bool scourgebane = false;
-    bool imp_sanctity = false;
-    int ferocious_inspiration = 0;
+    bool strength_of_earth = true;
+    bool grace_of_air = true;
+    bool windfury_totem = true;
+    bool unleashed_rage = true;
+    bool leader_of_the_pack = true;
+    bool trueshot_aura = true;
+    bool battle_squawk = false;
+    bool improved_battle_shout = false;
+    bool improved_blessing_of_might = false;
+    bool improved_strength_of_earth = false;
+    bool improved_grace_of_air = false;
+    bool improved_mark_of_the_wild = false;
 
+    // Consumables
     Food food;
     Flask flask;
     Elixir battle_elixir;
@@ -55,66 +55,34 @@ struct Config
     Drums drums;
     Potion potion;
     Potion first_potion;
-    Conjured conjured;
 
-    bool tirisfal_2set = true;
-    bool tirisfal_4set = true;
-    bool tempest_2set = false;
-    bool tempest_4set = false;
-    bool spellfire_set = false;
-    bool spellstrike_set = false;
-    bool eternal_sage = false;
-    bool wrath_of_cenarius = false;
-    bool mana_etched_4set = false;
-    bool blade_of_wizardry = false;
-    bool robe_elder_scribes = false;
-    bool blade_of_eternal_darkness = false;
-    bool sunwell_neck_aldor = false;
-    bool sunwell_neck_scryer = false;
-
+    // Trinkets and gems
     Trinket trinket1 = TRINKET_NONE;
     Trinket trinket2 = TRINKET_NONE;
     MetaGem meta_gem = META_NONE;
 
-    int innervate = 0;
-    int evo_ticks = 0;
-    bool mana_tide = true;
+    // Cooldowns
     bool bloodlust = true;
-    bool power_infusion = false;
-    bool symbol_of_hope = false;
+    bool death_wish = true;
+    bool recklessness = false;
+    bool bloodrage = true;
+    bool sweeping_strikes = false;
+    bool drums_friend = false;
 
-    MainRotation main_rotation = MAIN_ROTATION_AB;
-    RegenRotation regen_rotation = REGEN_ROTATION_FB;
-    double regen_mana_at = 20;
-    double regen_stop_at = 30;
-    int regen_ab_count = 3;
-    double ab_haste_stop = 0;
-    bool fire_blast_weave = false;
-
-    bool cc_am_queue = false;
-    bool cc_am_repeat = false;
-
-    bool bis_ashtongue = false;
+    MainRotation main_rotation = MAIN_ROTATION_BT;
+    bool use_heroic_strike = true;
+    double heroic_strike_rage_threshold = 60;
+    bool use_whirlwind = true;
+    bool use_execute = true;
+    double execute_phase_start = 20.0; // Boss health %
 
     std::vector<double> trinket1_t;
     std::vector<double> trinket2_t;
-    std::vector<double> presence_of_mind_t;
-    std::vector<double> arcane_power_t;
-    std::vector<double> icy_veins_t;
-    std::vector<double> cold_snap_t;
-    std::vector<double> combustion_t;
-    std::vector<double> berserking_t;
-    std::vector<double> mana_tide_t;
+    std::vector<double> death_wish_t;
+    std::vector<double> recklessness_t;
+    std::vector<double> bloodrage_t;
     std::vector<double> bloodlust_t;
-    std::vector<double> power_infusion_t;
     std::vector<double> drums_t;
-    std::vector<double> innervate_t;
     std::vector<double> potion_t;
-    std::vector<double> conjured_t;
-    std::vector<double> filler_start_t;
-    std::vector<double> filler_end_t;
-
-    double symbol_of_hope_at = 0;
-    double evocation_at = 0;
 
 };

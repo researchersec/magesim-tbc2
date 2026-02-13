@@ -1,4 +1,4 @@
-importScripts("./magesim.js");
+importScripts("./warriorsim.js");
 
 onmessage = (event) => {
     var data = event.data;
@@ -7,7 +7,7 @@ onmessage = (event) => {
         if (str.match(/^[0-9\-]+$/))
             return str;
 
-        var m = str.match(/talent-calc\/mage\/(.*)/i);
+        var m = str.match(/talent-calc\/warrior\/(.*)/i);
         if (m)
             return m[1];
 
@@ -15,9 +15,9 @@ onmessage = (event) => {
     };
 
     if (data.type == "start") {
-        const wasm = fetch("./magesim.wasm", {cache: "no-store"})
+        const wasm = fetch("./warriorsim.wasm", {cache: "no-store"})
         .then(r => r.arrayBuffer())
-        .then(binary => MageSim({wasmBinary: binary}))
+        .then(binary => WarriorSim({wasmBinary: binary}))
         .then(w => w.ready)
         .then(m => {
             var config = m.allocConfig();
@@ -38,8 +38,6 @@ onmessage = (event) => {
             }
             if (m.MainRotation.values.hasOwnProperty(data.config.main_rotation))
                 config.main_rotation = m.MainRotation.values[data.config.main_rotation];
-            if (m.RegenRotation.values.hasOwnProperty(data.config.regen_rotation))
-                config.regen_rotation = m.RegenRotation.values[data.config.regen_rotation];
             if (m.Trinket.values.hasOwnProperty(data.config.trinket1))
                 config.trinket1 = m.Trinket.values[data.config.trinket1];
             if (m.Trinket.values.hasOwnProperty(data.config.trinket2))
@@ -62,8 +60,6 @@ onmessage = (event) => {
                 config.potion = m.Potion.values[data.config.potion];
             if (m.Potion.values.hasOwnProperty(data.config.first_potion))
                 config.first_potion = m.Potion.values[data.config.first_potion];
-            if (m.Conjured.values.hasOwnProperty(data.config.conjured))
-                config.conjured = m.Conjured.values[data.config.conjured];
 
             var player = m.allocPlayer(config);
             var stats = JSON.parse(JSON.stringify(player.stats));
