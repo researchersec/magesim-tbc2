@@ -74,32 +74,20 @@
                     <table class="simple">
                         <tbody>
                             <tr>
-                                <td>Intellect</td>
-                                <td>{{ final_stats.intellect }}</td>
+                                <td>Strength</td>
+                                <td>{{ final_stats.strength }}</td>
                             </tr>
                             <tr>
-                                <td>Spirit</td>
-                                <td>{{ final_stats.spirit }}</td>
+                                <td>Agility</td>
+                                <td>{{ final_stats.agility }}</td>
                             </tr>
                             <tr>
-                                <td>Mp5</td>
-                                <td>{{ final_stats.mp5 }}</td>
+                                <td>Stamina</td>
+                                <td>{{ final_stats.stamina }}</td>
                             </tr>
                             <tr>
-                                <td>Spell power</td>
-                                <td>{{ final_stats.spell_power }}</td>
-                            </tr>
-                            <tr v-if="final_stats.spell_power_arcane">
-                                <td>SP Arcane</td>
-                                <td>+{{ final_stats.spell_power_arcane }}</td>
-                            </tr>
-                            <tr v-if="final_stats.spell_power_frost">
-                                <td>SP Frost</td>
-                                <td>+{{ final_stats.spell_power_frost }}</td>
-                            </tr>
-                            <tr v-if="final_stats.spell_power_fire">
-                                <td>SP Fire</td>
-                                <td>+{{ final_stats.spell_power_fire }}</td>
+                                <td>Attack Power</td>
+                                <td>{{ final_stats.attack_power }}</td>
                             </tr>
                             <tr>
                                 <td>Crit</td>
@@ -122,6 +110,17 @@
                                     <tooltip position="r">{{ final_stats.haste_rating }} haste rating</tooltip>
                                 </td>
                             </tr>
+                            <tr>
+                                <td>Expertise</td>
+                                <td>
+                                    <span>{{ $round(final_stats.expertise, 2) }}</span>
+                                    <tooltip position="r">{{ final_stats.expertise_rating }} expertise rating</tooltip>
+                                </td>
+                            </tr>
+                            <tr v-if="final_stats.armor_pen">
+                                <td>Armor Pen</td>
+                                <td>{{ final_stats.armor_pen }}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -139,58 +138,53 @@
                     </div>
                     <select v-model="ep_weight">
                         <option value="dps">DPS</option>
-                        <option value="int">Intellect (EP)</option>
-                        <option value="spi">Spirit (EP)</option>
-                        <option value="mp5">Mp5 (EP)</option>
-                        <option value="sp">Spell power (EP)</option>
-                        <option value="sp_arcane">SP Arcane (EP)</option>
-                        <option value="sp_frost">SP Frost (EP)</option>
-                        <option value="sp_fire">SP Fire (EP)</option>
+                        <option value="str">Strength (EP)</option>
+                        <option value="agi">Agility (EP)</option>
+                        <option value="sta">Stamina (EP)</option>
+                        <option value="ap">Attack Power (EP)</option>
                         <option value="crit">Crit rating (EP)</option>
                         <option value="hit">Hit rating (EP)</option>
                         <option value="haste">Haste rating (EP)</option>
+                        <option value="exp">Expertise rating (EP)</option>
+                        <option value="armor_pen">Armor Pen (EP)</option>
                     </select>
                     <table class="simple mt-1">
                         <tbody>
-                            <tr @click="ep_weight = 'int'">
-                                <td>Intellect</td>
-                                <td>{{ $nullRound(epCalc.int, 2) }}</td>
+                            <tr @click="ep_weight = 'str'">
+                                <td>Strength</td>
+                                <td>{{ $nullRound(epCalc.str, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'spi'">
-                                <td>Spirit</td>
-                                <td>{{ $nullRound(epCalc.spi, 2) }}</td>
+                            <tr @click="ep_weight = 'agi'">
+                                <td>Agility</td>
+                                <td>{{ $nullRound(epCalc.agi, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'mp5'">
-                                <td>Mp5</td>
-                                <td>{{ $nullRound(epCalc.mp5, 2) }}</td>
+                            <tr @click="ep_weight = 'sta'">
+                                <td>Stamina</td>
+                                <td>{{ $nullRound(epCalc.sta, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'sp'">
-                                <td>Spell power</td>
-                                <td>{{ $nullRound(epCalc.sp, 2) }}</td>
+                            <tr @click="ep_weight = 'ap'">
+                                <td>Attack Power</td>
+                                <td>{{ $nullRound(epCalc.ap, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'sp_arcane'">
-                                <td>SP Arcane</td>
-                                <td>{{ $nullRound(epCalc.sp_arcane, 2) }}</td>
-                            </tr>
-                            <tr @click="ep_weight = 'sp_frost'">
-                                <td>SP Frost</td>
-                                <td>{{ $nullRound(epCalc.sp_frost, 2) }}</td>
-                            </tr>
-                            <tr @click="ep_weight = 'sp_fire'">
-                                <td>SP Fire</td>
-                                <td>{{ $nullRound(epCalc.sp_fire, 2) }}</td>
-                            </tr>
-                            <tr @click="ep_weight = 'sp_crit'">
+                            <tr @click="ep_weight = 'crit'">
                                 <td>Crit rating</td>
                                 <td>{{ $nullRound(epCalc.crit, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'spt_hit'">
+                            <tr @click="ep_weight = 'hit'">
                                 <td>Hit rating</td>
                                 <td>{{ $nullRound(epCalc.hit, 2) }}</td>
                             </tr>
-                            <tr @click="ep_weight = 'sp_haste'">
+                            <tr @click="ep_weight = 'haste'">
                                 <td>Haste rating</td>
                                 <td>{{ $nullRound(epCalc.haste, 2) }}</td>
+                            </tr>
+                            <tr @click="ep_weight = 'exp'">
+                                <td>Expertise rating</td>
+                                <td>{{ $nullRound(epCalc.exp, 2) }}</td>
+                            </tr>
+                            <tr @click="ep_weight = 'armor_pen'">
+                                <td>Armor Pen</td>
+                                <td>{{ $nullRound(epCalc.armor_pen, 2) }}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -201,14 +195,6 @@
                         <div>{{ $round(result.avg_dps, 2) }}</div>
                         <div class="faded">{{ $round(result.min_dps, 2) }} - {{ $round(result.max_dps, 2) }}</div>
                         <div class="mt-1"></div>
-                        <div class="faded" v-if="result.stats.evocated.n">
-                            Evocated: {{ $round(result.stats.evocated.t, 1) }}s
-                            ({{ $round(result.stats.evocated.n / result.iterations * 100, 1) }}%)
-                        </div>
-                        <div class="faded" v-if="result.stats.regened.n">
-                            Filler: {{ $round(result.stats.regened.t, 1) }}s
-                            ({{ $round(result.stats.regened.n / result.iterations * 100, 1) }}%)
-                        </div>
                         <div class="faded" v-if="result.stats.t_gcd_capped">
                             Wasted haste: {{ $round(result.stats.t_gcd_capped, 2) }}s
                             <help>Time spent gcd capped</help>
@@ -222,8 +208,6 @@
                         <div>{{ $round(result.dps, 2) }}</div>
                         <div>Damage: {{ result.dmg }}</div>
                         <div class="mt-1"></div>
-                        <div class="faded" v-if="result.evocated_at > 0">Evocated at: {{ $round(result.evocated_at, 1) }}</div>
-                        <div class="faded" v-if="result.regened_at > 0">Filler at: {{ $round(result.regened_at, 1) }}</div>
                         <div class="faded" v-if="result.t_gcd_capped">
                             Wasted haste: {{ $round(result.t_gcd_capped, 2) }}s
                             <help>Time spent gcd capped</help>
@@ -241,7 +225,7 @@
                         </div>
                     </template>
                 </div>
-                <a class="github" href="https://github.com/Cheesehyvel/magesim-tbc2" target="_blank"></a>
+                <a class="github" href="https://github.com/yourusername/warriorsim-tbc" target="_blank"></a>
                 <div class="donate">
                     <a href="https://www.paypal.com/donate/?hosted_button_id=CU9RF4LCMW8W6" target="_blank">
                         Donate
@@ -315,7 +299,16 @@
                                                 <sort-link v-model="item_sort" name="sockets" order="desc">Sockets</sort-link>
                                             </th>
                                             <th>
-                                                <sort-link v-model="item_sort" name="sp" order="desc">{{ splitviewShort("Spell power", "SP") }}</sort-link>
+                                                <sort-link v-model="item_sort" name="str" order="desc">{{ splitviewShort("Strength", "Str") }}</sort-link>
+                                            </th>
+                                            <th>
+                                                <sort-link v-model="item_sort" name="agi" order="desc">{{ splitviewShort("Agility", "Agi") }}</sort-link>
+                                            </th>
+                                            <th>
+                                                <sort-link v-model="item_sort" name="sta" order="desc">{{ splitviewShort("Stamina", "Sta") }}</sort-link>
+                                            </th>
+                                            <th>
+                                                <sort-link v-model="item_sort" name="ap" order="desc">{{ splitviewShort("Attack Power", "AP") }}</sort-link>
                                             </th>
                                             <th>
                                                 <sort-link v-model="item_sort" name="crit" order="desc">{{ splitviewShort("Crit rating", "Crit") }}</sort-link>
@@ -327,13 +320,10 @@
                                                 <sort-link v-model="item_sort" name="haste" order="desc">{{ splitviewShort("Haste rating", "Haste") }}</sort-link>
                                             </th>
                                             <th>
-                                                <sort-link v-model="item_sort" name="int" order="desc">{{ splitviewShort("Intellect", "Int") }}</sort-link>
+                                                <sort-link v-model="item_sort" name="exp" order="desc">{{ splitviewShort("Expertise", "Exp") }}</sort-link>
                                             </th>
                                             <th>
-                                                <sort-link v-model="item_sort" name="spi" order="desc">{{ splitviewShort("Spirit", "Spi") }}</sort-link>
-                                            </th>
-                                            <th>
-                                                <sort-link v-model="item_sort" name="mp5" order="desc">Mp5</sort-link>
+                                                <sort-link v-model="item_sort" name="armor_pen" order="desc">{{ splitviewShort("Armor Pen", "ArP") }}</sort-link>
                                             </th>
                                         </tr>
                                     </thead>
@@ -377,13 +367,15 @@
                                                     +{{ formatStats(item.bonus) }}
                                                 </span>
                                             </td>
-                                            <td>{{ formatSP(item) }}</td>
+                                            <td>{{ $get(item, "str", "") }}</td>
+                                            <td>{{ $get(item, "agi", "") }}</td>
+                                            <td>{{ $get(item, "sta", "") }}</td>
+                                            <td>{{ $get(item, "ap", "") }}</td>
                                             <td>{{ $get(item, "crit", "") }}</td>
                                             <td>{{ $get(item, "hit", "") }}</td>
                                             <td>{{ $get(item, "haste", "") }}</td>
-                                            <td>{{ $get(item, "int", "") }}</td>
-                                            <td>{{ $get(item, "spi", "") }}</td>
-                                            <td>{{ $get(item, "mp5", "") }}</td>
+                                            <td>{{ $get(item, "exp", "") }}</td>
+                                            <td>{{ $get(item, "armor_pen", "") }}</td>
                                         </tr>
                                         <tr
                                             class="item"
@@ -411,12 +403,13 @@
                                     <thead>
                                         <tr>
                                             <th>Enchant</th>
-                                            <th>Spell power</th>
+                                            <th>Strength</th>
+                                            <th>Agility</th>
+                                            <th>Attack Power</th>
                                             <th>Crit rating</th>
                                             <th>Hit rating</th>
-                                            <th>Intellect</th>
-                                            <th>Spirit</th>
-                                            <th>Mp5</th>
+                                            <th>Haste rating</th>
+                                            <th>Expertise</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -432,12 +425,13 @@
                                                     {{ item.title }}
                                                 </a>
                                             </td>
-                                            <td>{{ formatSP(item) }}</td>
+                                            <td>{{ $get(item, "str", "") }}</td>
+                                            <td>{{ $get(item, "agi", "") }}</td>
+                                            <td>{{ $get(item, "ap", "") }}</td>
                                             <td>{{ $get(item, "crit", "") }}</td>
                                             <td>{{ $get(item, "hit", "") }}</td>
-                                            <td>{{ $get(item, "int", "") }}</td>
-                                            <td>{{ $get(item, "spi", "") }}</td>
-                                            <td>{{ $get(item, "mp5", "") }}</td>
+                                            <td>{{ $get(item, "haste", "") }}</td>
+                                            <td>{{ $get(item, "exp", "") }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
